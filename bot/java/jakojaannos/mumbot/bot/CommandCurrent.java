@@ -9,7 +9,7 @@ public class CommandCurrent extends Command {
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         // get current song, find artist and song name
         String message = "Current song: ";
         // send message to the channel

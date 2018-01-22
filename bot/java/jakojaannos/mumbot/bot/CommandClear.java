@@ -9,8 +9,11 @@ public class CommandClear extends Command {
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         // clear queue
+
+        // print message to channel
+        client.sendMessage("queue cleared");
     }
 
     @Override
@@ -18,8 +21,4 @@ public class CommandClear extends Command {
         return "- clears song queue";
     }
 
-    @Override
-    public String getFinisherMessage(){
-        return "queue cleared";
-    }
 }

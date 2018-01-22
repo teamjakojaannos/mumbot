@@ -9,8 +9,11 @@ public class CommandAdd extends Command {
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
+        // add song to queue
 
+        // print message to channel
+        client.sendMessage("song added to queue");
     }
 
     @Override
@@ -18,8 +21,4 @@ public class CommandAdd extends Command {
         return "[URL] - adds song to queue";
     }
 
-    @Override
-    public String getFinisherMessage(){
-        return "song added to queue";
-    }
 }

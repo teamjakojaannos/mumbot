@@ -9,17 +9,15 @@ public class CommandSkip extends Command {
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
 
+        // print message to channel
+        client.sendMessage("song skipped");
     }
 
     @Override
     public String getManual() {
         return "- skips current song";
-    }
-
-    public String getFinisherMessage(){
-        return "song skipped";
     }
 
 }

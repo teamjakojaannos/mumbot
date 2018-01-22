@@ -15,7 +15,7 @@ public class CommandHelp extends Command {
 
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         String message = "Available commands:";
         for (String key: commandMap.keySet()) {
             message += "\n" + key + " " + commandMap.get(key).getManual();

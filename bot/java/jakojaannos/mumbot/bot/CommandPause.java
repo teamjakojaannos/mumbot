@@ -10,8 +10,11 @@ public class CommandPause extends Command {
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         // pause music
+
+        // print message to channel
+        client.sendMessage("song paused");
     }
 
     @Override
@@ -19,8 +22,4 @@ public class CommandPause extends Command {
         return "- pauses music";
     }
 
-    @Override
-    public String getFinisherMessage(){
-        return "song paused";
-    }
 }

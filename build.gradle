@@ -54,6 +54,9 @@ project(':bot') {
             }
         }
     }
+    dependencies {
+        project(':client')
+    }
 }
 
 // Deploy to maven repo

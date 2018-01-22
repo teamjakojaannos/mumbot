@@ -60,4 +60,8 @@ public class MumbleClient {
     public void sendMessage(UserInfo target, String message) {
 
     }
+
+    public void registerChatListener(IChatListener listener) {
+
+    }
 }

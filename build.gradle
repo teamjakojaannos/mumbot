@@ -1,0 +1,47 @@
+group 'jakojaannos'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven {
+        url "http://saltandrng.net:8080/repository/internal/"
+    }
+}
+
+dependencies {
+    project(':client')
+    compile group: 'org.concentus', name: 'Concentus', version: '1.0'
+    compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+project(':client') {
+    sourceSets {
+        main {
+            java {
+                srcDir 'client/java'
+            }
+            resources {
+                srcDir 'client/resources'
+            }
+        }
+    }
+
+    // TODO: Merge these to one task with executable from variable
+    // Generates the client/MumbleProto/Mumble.java from client/Mumble.proto
+    task protocMumbleProto_win(type: Exec) {
+        workingDir '..'
+        commandLine 'cmd', '/c', '.\\tools\\protoc-3.5.1-win32\\bin\\protoc.exe -I=client --java_out=client/java client/Mumble.proto'
+    }
+    task protocMumbleProto_linux(type: Exec) {
+        workingDir '../'
+        commandLine './tools/protoc-3.5.1-linux-x86_64/bin/protoc -I=client --java_out=client/java client/Mumble.proto'
+    }
+}
+
+// Deploy to maven repo
+

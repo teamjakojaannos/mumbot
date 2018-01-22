@@ -3,6 +3,7 @@ package jakojaannos.mumbot.client;
 import jakojaannos.mumbot.client.channels.Channel;
 import jakojaannos.mumbot.client.channels.ChannelManager;
 import jakojaannos.mumbot.client.server.ServerInfo;
+import jakojaannos.mumbot.client.users.UserInfo;
 import jakojaannos.mumbot.client.users.UserManager;
 
 /**
@@ -41,6 +42,22 @@ public class MumbleClient {
     }
 
     public void disconnect() {
+
+    }
+
+    public void changeChannel(Channel channel) {
+
+    }
+
+    public void sendMessage(String message) {
+
+    }
+
+    public void sendMessage(Channel channel, String message) {
+
+    }
+
+    public void sendMessage(UserInfo target, String message) {
 
     }
 }

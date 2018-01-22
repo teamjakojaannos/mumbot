@@ -6,6 +6,7 @@ public class CommandQueue extends Command {
 
     public CommandQueue(MumbleClient client){
         super(client);
+        aliases.add("queue");
     }
 
     @Override
@@ -37,6 +38,6 @@ public class CommandQueue extends Command {
 
     @Override
     public String getManual() {
-        return "- displays current song queue";
+        return "- displays current song queue.";
     }
 }

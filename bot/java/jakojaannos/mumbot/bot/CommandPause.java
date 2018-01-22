@@ -7,6 +7,7 @@ public class CommandPause extends Command {
 
     public CommandPause(MumbleClient client){
         super(client);
+        aliases.add("pause");
     }
 
     @Override
@@ -19,7 +20,7 @@ public class CommandPause extends Command {
 
     @Override
     public String getManual() {
-        return "- pauses music";
+        return "- pauses music.";
     }
 
 }

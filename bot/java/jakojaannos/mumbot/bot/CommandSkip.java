@@ -6,6 +6,7 @@ public class CommandSkip extends Command {
 
     public CommandSkip(MumbleClient client){
         super(client);
+        aliases.add("skip");
     }
 
     @Override
@@ -17,7 +18,7 @@ public class CommandSkip extends Command {
 
     @Override
     public String getManual() {
-        return "- skips current song";
+        return "- skips current song.";
     }
 
 }

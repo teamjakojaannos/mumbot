@@ -5,51 +5,64 @@ import jakojaannos.mumbot.client.IChatListener;
 import jakojaannos.mumbot.client.MumbleClient;
 import jakojaannos.mumbot.client.users.UserInfo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class MessageParser implements IChatListener {
 
 
-    private HashMap<String, Command> commandMap;
+    private List<Command> commandList;
 
-    public MessageParser(MumbleClient client){
-        this.commandMap = new HashMap<>();
+    public MessageParser(MumbleClient client) {
+        commandList = new ArrayList<>();
 
-        commandMap.put("help", new CommandHelp(client, commandMap));
-        commandMap.put("add", new CommandAdd(client));
-        commandMap.put("clear", new CommandClear(client));
-        commandMap.put("current", new CommandCurrent(client));
-        commandMap.put("pause", new CommandPause(client));
-        commandMap.put("play", new CommandPlay(client));
-        commandMap.put("queue", new CommandQueue(client));
-        commandMap.put("skip", new CommandSkip(client));
-        commandMap.put("song", new CommandSong(client));
+        commandList.add(new CommandHelp(client, commandList));
+        commandList.add(new CommandAdd(client));
+        commandList.add(new CommandClear(client));
+        commandList.add(new CommandCurrent(client));
+        commandList.add(new CommandPause(client));
+        commandList.add(new CommandPlay(client));
+        commandList.add(new CommandQueue(client));
+        commandList.add(new CommandSkip(client));
+        commandList.add(new CommandSong(client));
+        commandList.add(new CommandVolume(client));
 
     }
 
     @java.lang.Override
     public void receive(UserInfo userInfo, String message) {
-        if(message.startsWith("!")){
+        if (message.startsWith("!")) {
             // remove "!"
             message = message.substring(1);
 
             String command = "", arg = "";
 
             int i = message.indexOf(" ");
-            if(i == -1){
+            if (i == -1) {
                 // no spaces found -> command doesn't have arguments (for example "!pause")
                 command = message;
-            }else{
+            } else {
                 // spaces found, command has arguments "!command args"
-                command = message.substring(0,i);
-                arg = message.substring(i+1);
+                command = message.substring(0, i);
+                arg = message.substring(i + 1);
             }
 
-            if(commandMap.containsKey(command)){
-                commandMap.get(command).execute(arg);
-            }else{
-                // send message to channel "Invalid command"
-                System.out.println("Invaliidi_kommando");
+            boolean match = false;
+
+            // try to find matching command
+            for (Command comm : commandList) {
+                if (comm.hasAlias(command)) {
+                    // found a command, execute it (preferably with a pistol)
+                    comm.execute(arg);
+
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) {
+                System.out.println("Invalid command");
             }
 
         }

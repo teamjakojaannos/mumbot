@@ -3,22 +3,40 @@ package jakojaannos.mumbot.bot;
 import jakojaannos.mumbot.client.MumbleClient;
 
 import java.util.HashMap;
+import java.util.List;
 
 public class CommandHelp extends Command {
 
-    private HashMap<String,Command> commandMap;
+    private List<Command> commandList;
 
-    public CommandHelp(MumbleClient client, HashMap<String, Command> commandMap){
+    public CommandHelp(MumbleClient client, List<Command> commandList) {
         super(client);
-        this.commandMap = commandMap;
+        this.commandList = commandList;
+        aliases.add("help");
     }
 
 
     @Override
     public void execute(String args) {
         String message = "Available commands:";
-        for (String key: commandMap.keySet()) {
-            message += "\n" + key + " " + commandMap.get(key).getManual();
+
+        for (Command command : commandList) {
+            // message += "commandName [arg1] - how to use. Aliases: cmd, commandName"
+            List<String> aliases = command.getAliases();
+            message += "\n" + aliases.get(0) + " " + command.getManual();
+
+            if (aliases.size() > 1) {
+                // list alises
+                message += " Aliases: ";
+
+                for (int i = 0; i < aliases.size(); i++) {
+                    message += aliases.get(i);
+                    // don't add comma on last round
+                    if (i != aliases.size() - 1) message += ", ";
+                }
+
+            }
+
         }
 
 
@@ -29,6 +47,6 @@ public class CommandHelp extends Command {
 
     @Override
     public String getManual() {
-        return "- displays all commands";
+        return "- displays all commands.";
     }
 }

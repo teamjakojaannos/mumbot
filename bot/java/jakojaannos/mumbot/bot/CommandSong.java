@@ -6,6 +6,7 @@ public class CommandSong extends Command {
 
     public CommandSong(MumbleClient client){
         super(client);
+        aliases.add("song");
     }
 
     @Override
@@ -19,7 +20,7 @@ public class CommandSong extends Command {
 
     @Override
     public String getManual() {
-        return "[URL] - plays a song. Doesn't modify song queue";
+        return "[URL] - plays a song. Doesn't modify song queue.";
     }
 
 }

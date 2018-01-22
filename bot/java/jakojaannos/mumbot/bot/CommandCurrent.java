@@ -6,6 +6,7 @@ public class CommandCurrent extends Command {
 
     public CommandCurrent(MumbleClient client){
         super(client);
+        aliases.add("current");
     }
 
     @Override
@@ -18,6 +19,6 @@ public class CommandCurrent extends Command {
 
     @Override
     public String getManual() {
-        return "- displays current song";
+        return "- displays current song.";
     }
 }

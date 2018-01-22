@@ -6,6 +6,7 @@ public class CommandClear extends Command {
 
     public CommandClear(MumbleClient client){
         super(client);
+        aliases.add("clear");
     }
 
     @Override
@@ -18,7 +19,7 @@ public class CommandClear extends Command {
 
     @Override
     public String getManual() {
-        return "- clears song queue";
+        return "- clears song queue.";
     }
 
 }

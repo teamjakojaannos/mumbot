@@ -43,5 +43,18 @@ project(':client') {
     }
 }
 
+project(':bot') {
+    sourceSets {
+        main {
+            java {
+                srcDir 'bot/java'
+            }
+            resources {
+                srcDir 'bot/resources'
+            }
+        }
+    }
+}
+
 // Deploy to maven repo
 

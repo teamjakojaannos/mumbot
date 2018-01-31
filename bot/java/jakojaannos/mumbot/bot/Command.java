@@ -2,26 +2,23 @@ package jakojaannos.mumbot.bot;
 
 import jakojaannos.mumbot.client.MumbleClient;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class Command {
 
     protected final MumbleClient client;
 
+    protected List<String> aliases;
+
     public Command(MumbleClient client){
         this.client = client;
+
+        this.aliases = new ArrayList<>();
     }
 
-    public final void execute(String args){
-        doExecute(args);
-        String msg = getFinisherMessage();
 
-        if(!msg.equals("")){
-            System.out.println(msg);
-            client.sendMessage(msg);
-        }
-
-    }
-
-    protected abstract void doExecute(String args);
+    protected abstract void execute(String args);
 
     /**
      * return info on how to use the command
@@ -33,15 +30,12 @@ public abstract class Command {
      */
     public abstract String getManual();
 
-    /**
-     * this message will be displayed to the channel after doExecute() has been done.
-     * For example user types in "!add (song url)", this song is added to the list and
-     * a message "song added to list" will be sent to channel.
-     *
-     * You can leave this empty to not display a message after doExecute
-     * @return
-     */
-    public String getFinisherMessage(){
-        return "";
+    public List<String> getAliases(){
+        return aliases;
     }
+
+    public boolean hasAlias(String alias){
+        return this.aliases.contains(alias);
+    }
+
 }

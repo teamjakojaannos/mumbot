@@ -6,20 +6,20 @@ public class CommandClear extends Command {
 
     public CommandClear(MumbleClient client){
         super(client);
+        aliases.add("clear");
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         // clear queue
+
+        // print message to channel
+        client.sendMessage("queue cleared");
     }
 
     @Override
     public String getManual() {
-        return "- clears song queue";
+        return "- clears song queue.";
     }
 
-    @Override
-    public String getFinisherMessage(){
-        return "queue cleared";
-    }
 }

@@ -6,20 +6,19 @@ public class CommandSkip extends Command {
 
     public CommandSkip(MumbleClient client){
         super(client);
+        aliases.add("skip");
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
 
+        // print message to channel
+        client.sendMessage("song skipped");
     }
 
     @Override
     public String getManual() {
-        return "- skips current song";
-    }
-
-    public String getFinisherMessage(){
-        return "song skipped";
+        return "- skips current song.";
     }
 
 }

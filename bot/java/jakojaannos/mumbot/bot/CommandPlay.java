@@ -7,21 +7,20 @@ public class CommandPlay extends Command{
 
     public CommandPlay(MumbleClient client){
         super(client);
+        aliases.add("play");
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         // continue music
 
+        // print message to channel
+        client.sendMessage("song resumed");
     }
 
     @Override
     public String getManual() {
-        return "- continues paused music";
+        return "- continues paused music.";
     }
 
-    @Override
-    public String getFinisherMessage(){
-        return "song resumed";
-    }
 }

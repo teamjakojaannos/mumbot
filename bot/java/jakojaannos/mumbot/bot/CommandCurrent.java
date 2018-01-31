@@ -6,10 +6,11 @@ public class CommandCurrent extends Command {
 
     public CommandCurrent(MumbleClient client){
         super(client);
+        aliases.add("current");
     }
 
     @Override
-    public void doExecute(String args) {
+    public void execute(String args) {
         // get current song, find artist and song name
         String message = "Current song: ";
         // send message to the channel
@@ -18,6 +19,6 @@ public class CommandCurrent extends Command {
 
     @Override
     public String getManual() {
-        return "- displays current song";
+        return "- displays current song.";
     }
 }

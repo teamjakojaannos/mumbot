@@ -8,6 +8,7 @@ public enum EMessageType {
     Reject,
     ServerSync,
     ChannelRemove,
+    ChannelState,
     UserRemove,
     UserState,
     BanList,

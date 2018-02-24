@@ -1,97 +1,130 @@
 package jakojaannos.mumbot.client.connection;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Queue;
+import java.util.function.Supplier;
 
 /**
  * Handles reading mumble protocol packets from non-blocking {@link SocketChannel}
  */
-public class SocketReader {
-    private static final int HEADER_LENGTH = 6;
+class SocketReader implements Runnable {
+    private static final int PREFIX_LENGTH = 6;
     private static final int MESSAGE_MAX_LENGTH = 8388608; // 8MiB - 1B = 8388608B
-    private static final int BUFFER_MAX_CAPACITY = HEADER_LENGTH + MESSAGE_MAX_LENGTH;
+    private static final int BUFFER_MAX_CAPACITY = PREFIX_LENGTH + MESSAGE_MAX_LENGTH;
 
-    private final SocketChannel channel;
-
-    private boolean hasHeader;
-    private short msgType = -1;
-    private int msgLength = 0;
+    private final Socket socket;
+    private final Supplier<Boolean> running;
+    private final Deque<TcpConnection.PacketData> inQueue;
 
     private ByteBuffer buffer;
+    private boolean hasPackets;
 
 
-    public SocketReader(SocketChannel channel) {
-        this.channel = channel;
+    SocketReader(Socket socket, Supplier<Boolean> running) {
+        this.socket = socket;
+        this.running = running;
+
         this.buffer = ByteBuffer.allocate(BUFFER_MAX_CAPACITY);
+        this.inQueue = new ArrayDeque<>();
     }
 
+    public TcpConnection.PacketData dequeue() {
+        TcpConnection.PacketData data;
 
-    public void doRead(Queue<TcpConnection.PacketData> dataQueue) {
-        buffer.clear();
+        synchronized (inQueue) {
+            data = inQueue.pollLast();
+            hasPackets = !inQueue.isEmpty();
+            inQueue.notifyAll();
+        }
 
-        int nRead;
+        return data;
+    }
+
+    @Override
+    public void run() {
+        System.out.println("SocketReader entering loop");
+        while (running.get()) {
+            doRead();
+            doWait();
+        }
+
+        inQueue.notifyAll();
+        System.out.println("SocketReader leaving loop");
+    }
+
+    private void doRead() {
         try {
-            // Dump bytes from the socket channel to the buffer
-            nRead = channel.read(buffer);
-        } catch (IOException e) {
-            System.err.println("Error reading from channel:");
-            e.printStackTrace();
-            return;
-        }
+            InputStream stream = socket.getInputStream();
 
-        // Return if there is nothing to read
-        if (nRead <= 0) {
-            return;
-        }
-
-        // We got data, read packets until we hit an incomplete packet
-        boolean canReadHeader = !hasHeader && buffer.remaining() >= 6;
-        boolean canReadMessage = hasHeader && buffer.remaining() >= msgLength;
-        boolean readNext = canReadHeader || canReadMessage;
-        while (readNext) {
-            if (canReadHeader) {
-                doReadHeader();
-                hasHeader = true;
-            } else /* canReadMessage == true */ {
-                doReadMessage(dataQueue);
-                hasHeader = false;
+            // Read prefix
+            System.out.println("reading prefix");
+            if (readBytes(stream, PREFIX_LENGTH)) {
+                return;
             }
+            buffer.flip();
 
-            canReadHeader = !hasHeader && buffer.remaining() >= 6;
-            canReadMessage = hasHeader && buffer.remaining() >= msgLength;
-            readNext = canReadHeader || canReadMessage;
+            short msgType = buffer.getShort();
+            int msgLength = buffer.getInt();
+
+            buffer.clear();
+
+
+            // Read message
+            System.out.println("reading message");
+            if (readBytes(stream, msgLength - buffer.position())) {
+                return;
+            }
+            buffer.flip();
+
+            byte[] data = new byte[msgLength];
+            buffer.get(data);
+
+            buffer.clear();
+
+
+            System.out.println("queuing packet");
+            synchronized (inQueue) {
+                System.out.println("read queue packet - claimed lock");
+                inQueue.add(new TcpConnection.PacketData(msgType, data));
+                hasPackets = true;
+                inQueue.notifyAll();
+            }
+            System.out.println("read queue packet - released lock");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        // Compact the buffer
-        buffer.compact();
     }
 
-    /**
-     * Reads a 6-byte packet header from the buffer. Implementation can safely assume that buffer has at least 6 bytes
-     * of data remaining.
-     */
-    private void doReadHeader() {
-        msgType = buffer.getShort();
-        msgLength = buffer.getInt();
+    private boolean readBytes(InputStream stream, int n) throws IOException {
+        while (buffer.position() < n) {
+            int a = stream.read();
+            if (a == -1) return true;
+
+            buffer.put((byte) a);
+        }
+        return false;
     }
 
-    /**
-     * Reads message from the buffer. Implementation can safely assume that buffer has at least {@link #msgLength} bytes
-     * of data and {@link #msgLength} and {@link #msgType} are set.
-     */
-    private void doReadMessage(Queue<TcpConnection.PacketData> dataQueue) {
-        byte[] messageBytes = new byte[msgLength];
-        buffer.get(messageBytes);
-
-        System.out.println("Received message:");
-        for (byte messageByte : messageBytes) {
-            System.out.print(messageByte + " ");
+    private void doWait() {
+        synchronized (inQueue) {
+            try {
+                inQueue.wait();
+            } catch (InterruptedException ignored) {
+            }
         }
+    }
 
-        dataQueue.add(new TcpConnection.PacketData(msgType, messageBytes));
+    public Object getLock() {
+        return inQueue;
+    }
 
-        System.out.println();
+    public boolean hasPackets() {
+        return hasPackets;
     }
 }

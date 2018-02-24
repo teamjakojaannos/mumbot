@@ -25,7 +25,6 @@ public class MumbleClient {
     private AtomicBoolean connected;
 
     private TcpConnection connection;
-    private Thread loopThread;
 
     public ChannelManager getChannels() {
         return channels;
@@ -52,8 +51,6 @@ public class MumbleClient {
         try {
             connection = new TcpConnection(address, port);
             connected.set(true);
-            loopThread = new Thread(this::loop);
-            loopThread.start();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -86,13 +83,5 @@ public class MumbleClient {
 
     public void registerChatListener(IChatListener listener) {
         chatListeners.add(listener);
-    }
-
-    private void loop() {
-        while (connected.get()) {
-            connection.loopRead();
-
-            connection.loopWrite();
-        }
     }
 }

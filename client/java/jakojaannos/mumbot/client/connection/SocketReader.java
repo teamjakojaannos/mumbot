@@ -34,7 +34,7 @@ class SocketReader implements Runnable {
         this.inQueue = new ArrayDeque<>();
     }
 
-    public TcpConnection.PacketData dequeue() {
+    TcpConnection.PacketData dequeue() {
         TcpConnection.PacketData data;
 
         synchronized (inQueue) {
@@ -51,7 +51,6 @@ class SocketReader implements Runnable {
         System.out.println("SocketReader entering loop");
         while (running.get()) {
             doRead();
-            doWait();
         }
 
         inQueue.notifyAll();
@@ -111,20 +110,7 @@ class SocketReader implements Runnable {
         return false;
     }
 
-    private void doWait() {
-        synchronized (inQueue) {
-            try {
-                inQueue.wait();
-            } catch (InterruptedException ignored) {
-            }
-        }
-    }
-
-    public Object getLock() {
-        return inQueue;
-    }
-
-    public boolean hasPackets() {
+    boolean hasPackets() {
         return hasPackets;
     }
 }

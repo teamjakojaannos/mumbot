@@ -28,9 +28,9 @@ public class TcpConnection {
 
         final short major = 1;
         final byte minor = 2;
-        final byte patch = 3;
+        final byte patch = 19;
         Mumble.Version version = Mumble.Version.newBuilder()
-                .setVersion(major << 2 + minor << 1 + patch)
+                .setVersion((major << 2) + (minor << 1) + patch)
                 .setRelease("mumbot")
                 .build();
 

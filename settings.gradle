@@ -1,2 +1,2 @@
 rootProject.name = 'mumbot'
-include 'client', 'bot'
+include 'client', 'bot', 'ytapi'

@@ -1,6 +1,6 @@
 package jakojaannos.mumbot.client.connection;
 
-import com.sun.deploy.security.X509DeployTrustManager;
+//import com.sun.deploy.security.X509DeployTrustManager;
 
 import javax.net.ssl.*;
 import java.io.IOException;

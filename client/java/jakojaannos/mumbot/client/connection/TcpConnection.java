@@ -142,6 +142,11 @@ public class TcpConnection {
 
     private void handleChannelState(Mumble.ChannelState channelState) {
         System.out.printf("Received channel state: #%d %s - %s\n", channelState.getChannelId(), channelState.getName(), channelState.getDescription());
+
+
+
+        final int id = channelState.getChannelId();
+
     }
 
     private void handleUserState(Mumble.UserState userState) {

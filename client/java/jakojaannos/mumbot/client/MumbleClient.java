@@ -1,8 +1,14 @@
 package jakojaannos.mumbot.client;
 
+import MumbleProto.Mumble;
 import jakojaannos.mumbot.client.channels.Channel;
 import jakojaannos.mumbot.client.channels.ChannelManager;
+import jakojaannos.mumbot.client.connection.EMessageType;
 import jakojaannos.mumbot.client.connection.TcpConnection;
+import jakojaannos.mumbot.client.connection.TcpMessageHandler;
+import jakojaannos.mumbot.client.connection.messages.HandlerChannelState;
+import jakojaannos.mumbot.client.connection.messages.HandlerUserState;
+import jakojaannos.mumbot.client.connection.messages.HandlerVersion;
 import jakojaannos.mumbot.client.server.ServerInfo;
 import jakojaannos.mumbot.client.users.UserInfo;
 import jakojaannos.mumbot.client.users.UserManager;
@@ -20,11 +26,14 @@ public class MumbleClient {
     private final UserManager users = new UserManager();
     private final List<IChatListener> chatListeners = new ArrayList<>();
 
+    private final TcpMessageHandler tcpMessageHandler = new TcpMessageHandler();
+
     private ServerInfo serverInfo;
     private Channel currentChannel;
     private AtomicBoolean connected;
 
-    private TcpConnection connection;
+    private TcpConnection tcpConnection;
+    //private UdpConnection udpConnection;
 
     public ChannelManager getChannels() {
         return channels;
@@ -45,11 +54,13 @@ public class MumbleClient {
 
     public MumbleClient() {
         connected = new AtomicBoolean(false);
+
+        registerTcpMessageHandlers();
     }
 
     public void connect(String address, int port) {
         try {
-            connection = new TcpConnection(address, port);
+            tcpConnection = new TcpConnection(tcpMessageHandler, address, port);
             connected.set(true);
         } catch (IOException e) {
             e.printStackTrace();
@@ -58,7 +69,7 @@ public class MumbleClient {
 
     public void disconnect() {
         try {
-            connection.close();
+            tcpConnection.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -83,5 +94,15 @@ public class MumbleClient {
 
     public void registerChatListener(IChatListener listener) {
         chatListeners.add(listener);
+    }
+
+
+    private void registerTcpMessageHandlers() {
+        tcpMessageHandler.register(EMessageType.Version, new HandlerVersion(), Mumble.Version::parseFrom);
+        tcpMessageHandler.register(EMessageType.ChannelState, new HandlerChannelState(channels), Mumble.ChannelState::parseFrom);
+        tcpMessageHandler.register(EMessageType.UserState, new HandlerUserState(users), Mumble.UserState::parseFrom);
+
+        // Ignored messages
+        tcpMessageHandler.register(EMessageType.Authenticate, (w, msg) -> {}, Mumble.Authenticate::parseFrom);
     }
 }

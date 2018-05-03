@@ -7,7 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Supplier;
 
-class SocketWriter implements Runnable {
+public class SocketWriter implements Runnable {
     private final Socket socket;
     private final Deque<TcpConnection.PacketData> outQueue;
     private final Supplier<Boolean> running;
@@ -19,7 +19,7 @@ class SocketWriter implements Runnable {
         this.outQueue = new ArrayDeque<>();
     }
 
-    void queue(TcpConnection.PacketData packet) {
+    public void queue(TcpConnection.PacketData packet) {
         synchronized (outQueue) {
             outQueue.add(packet);
             outQueue.notifyAll();

@@ -1,3 +1,5 @@
+package jakojaannos.mumbot.ytapi;
+
 import com.sapher.youtubedl.YoutubeDL;
 import com.sapher.youtubedl.YoutubeDLException;
 import com.sapher.youtubedl.YoutubeDLRequest;

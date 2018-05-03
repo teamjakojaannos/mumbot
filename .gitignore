@@ -1,6 +1,6 @@
 # IntelliJ Project files
 .idea
-*.iml
+**.iml
 
 # build
 .gradle/

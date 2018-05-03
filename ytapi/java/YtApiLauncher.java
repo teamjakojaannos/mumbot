@@ -5,6 +5,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.googleapis.services.AbstractGoogleClientRequest;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.JsonFactory;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -98,7 +100,50 @@ public class YtApiLauncher {
     public static void main(String[] args) throws IOException {
         YouTube youtube = getYouTubeService();
         try {
-            YouTube.Channels.List channelsListByUsernameRequest = youtube.channels().list("snippet,contentDetails,statistics");
+
+            // *************************************************************
+            // Searching video with ID
+            YouTube.Videos.List vl = youtube.videos().list("snippet");
+            vl.setId("OerFifNGS5k");
+            VideoListResponse response = vl.execute();
+
+            System.out.println(response.getItems().get(0).getSnippet().getTitle());
+            System.out.println(response.getItems().get(0).getId());
+
+            /*HashMap<String, String> parameters = new HashMap<>();
+            parameters.put("part", "snippet");
+            parameters.put("maxResults", "25");
+            parameters.put("q", "runteli");
+            parameters.put("type", "video");
+
+            YouTube.Search.List searchListByKeywordRequest = youtube.search().list(parameters.get("part").toString());
+            if (parameters.containsKey("maxResults")) {
+                searchListByKeywordRequest.setMaxResults(Long.parseLong(parameters.get("maxResults").toString()));
+            }
+
+            if (parameters.containsKey("q") && parameters.get("q") != "") {
+                searchListByKeywordRequest.setQ(parameters.get("q").toString());
+            }
+
+            if (parameters.containsKey("type") && parameters.get("type") != "") {
+                searchListByKeywordRequest.setType(parameters.get("type").toString());
+            }
+
+            SearchListResponse response = searchListByKeywordRequest.execute();
+            List<SearchResult> ls = response.getItems();
+
+            for (int i = 0; i < ls.size(); i++) {
+                System.out.println(ls.get(i).getSnippet().getTitle());
+            }*/
+            //System.out.println(response.getItems().get(0).getSnippet().getTitle());
+
+            /*YouTube.Videos.List vidList = youtube.videos().list("Google developers");
+            VideoListResponse vrl = vidList.execute();
+            Video video = vrl.getItems().get(0);
+
+            System.out.printf("The title of the video is %s\n", video.getSnippet().getTitle());*/
+            
+            /*YouTube.Channels.List channelsListByUsernameRequest = youtube.channels().list("snippet,contentDetails,statistics");
             channelsListByUsernameRequest.setForUsername("GoogleDevelopers");
 
             ChannelListResponse response = channelsListByUsernameRequest.execute();
@@ -107,7 +152,7 @@ public class YtApiLauncher {
                     "This channel's ID is %s. Its title is '%s', and it has %s views.\n",
                     channel.getId(),
                     channel.getSnippet().getTitle(),
-                    channel.getStatistics().getViewCount());
+                    channel.getStatistics().getViewCount());*/
         } catch (GoogleJsonResponseException e) {
             e.printStackTrace();
             System.err.println("There was a service error: " +

@@ -6,6 +6,9 @@ import jakojaannos.mumbot.client.connection.SocketWriter;
 import jakojaannos.mumbot.client.connection.TcpConnection;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 
+/**
+ * Receives version information from the server and sends back authenticate message
+ */
 public class HandlerVersion implements TcpMessageHandler.Handler<Mumble.Version> {
     @Override
     public void handle(SocketWriter writer, Mumble.Version version) {

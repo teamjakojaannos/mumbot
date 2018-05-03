@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Queue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -21,10 +21,9 @@ class SocketReader implements Runnable {
     private final Socket socket;
     private final Supplier<Boolean> running;
     private final Deque<TcpConnection.PacketData> inQueue;
+    private final AtomicBoolean hasPackets = new AtomicBoolean();
 
     private ByteBuffer buffer;
-    private boolean hasPackets;
-
 
     SocketReader(Socket socket, Supplier<Boolean> running) {
         this.socket = socket;
@@ -39,7 +38,7 @@ class SocketReader implements Runnable {
 
         synchronized (inQueue) {
             data = inQueue.pollLast();
-            hasPackets = !inQueue.isEmpty();
+            hasPackets.set(!inQueue.isEmpty());
             inQueue.notifyAll();
         }
 
@@ -91,7 +90,7 @@ class SocketReader implements Runnable {
             synchronized (inQueue) {
                 System.out.println("read queue packet - claimed lock");
                 inQueue.add(new TcpConnection.PacketData(msgType, data));
-                hasPackets = true;
+                hasPackets.set(true);
                 inQueue.notifyAll();
             }
             System.out.println("read queue packet - released lock");
@@ -100,6 +99,14 @@ class SocketReader implements Runnable {
         }
     }
 
+    /**
+     * Reads n bytes from the given input stream
+     *
+     * @param stream input stream to read from
+     * @param n      number of bytes to read
+     * @return true if stream terminated before n bytes was read. False otherwise
+     * @throws IOException If reading stream throws an exception
+     */
     private boolean readBytes(InputStream stream, int n) throws IOException {
         while (buffer.position() < n) {
             int a = stream.read();
@@ -111,6 +118,6 @@ class SocketReader implements Runnable {
     }
 
     boolean hasPackets() {
-        return hasPackets;
+        return hasPackets.get();
     }
 }

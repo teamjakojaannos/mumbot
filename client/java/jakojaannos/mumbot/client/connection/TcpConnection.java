@@ -18,6 +18,10 @@ public class TcpConnection {
 
     private final TcpMessageHandler messageHandler;
 
+    public SocketWriter getWriter() {
+        return writer;
+    }
+
     /**
      * Checks if the socket is still connected
      *

@@ -6,25 +6,44 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import java.io.IOException;
 import java.net.Socket;
 
+/**
+ * Facilitates the TCP "command channel" connection with the mumble server
+ */
 public class TcpConnection {
     private final Socket socket;
 
-    private SocketReader reader;
-    private SocketWriter writer;
+    private final SocketReader reader;
+    private final SocketWriter writer;
+    private final SocketKeepalive keepalive;
+
+    /**
+     * Checks if the socket is still connected
+     *
+     * @return true if socket is open and connected, false otherwise
+     */
+    private boolean isConnected() {
+        return socket.isConnected() && !socket.isClosed();
+    }
 
     public TcpConnection(String hostname, int port) throws IOException {
         this.socket = SocketUtil.openSSLSocket(hostname, port);
         if (socket == null) {
+            this.reader = null;
+            this.writer = null;
+            this.keepalive = null;
+
             System.err.println("Could not connect, opening SSL socket failed!");
             return;
         }
 
-        this.reader = new SocketReader(socket, this::isRunning);
-        this.writer = new SocketWriter(socket, this::isRunning);
+        this.reader = new SocketReader(socket, this::isConnected);
+        this.writer = new SocketWriter(socket, this::isConnected);
+        this.keepalive = new SocketKeepalive(writer, 15000L, this::isConnected);
 
         new Thread(reader).start();
         new Thread(writer).start();
-        new Thread(this::loop).start();
+        new Thread(keepalive).start();
+        new Thread(this::loop).start(); // TODO: Move looping to its own class. Try keep the classes clean!
 
         final short major = 1;
         final byte minor = 2;
@@ -37,12 +56,8 @@ public class TcpConnection {
         writer.queue(new PacketData((short) EMessageType.Version.ordinal(), version.toByteArray()));
     }
 
-    private boolean isRunning() {
-        return socket.isConnected() && !socket.isClosed();
-    }
-
     private void loop() {
-        while (isRunning()) {
+        while (isConnected()) {
             while (reader.hasPackets()) {
                 System.out.println("Iterating inQueue");
 
@@ -55,6 +70,15 @@ public class TcpConnection {
                     e.printStackTrace();
                 }
             }
+
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException ignored) {
+            }
+        }
+
+        synchronized (keepalive) {
+            keepalive.notifyAll();
         }
     }
 
@@ -157,7 +181,7 @@ public class TcpConnection {
         socket.close();
     }
 
-    public static class PacketData {
+    static class PacketData {
         short type;
         byte[] data;
 

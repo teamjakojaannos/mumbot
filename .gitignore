@@ -7,4 +7,4 @@
 build/
 out/
 
-client_secret.json
+**/client_secret.json

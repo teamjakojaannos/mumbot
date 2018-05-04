@@ -85,14 +85,19 @@ public class MumbleClient {
             return;
         }
 
-        Mumble.UserState userState = Mumble.UserState.newBuilder(). //
-                setChannelId(channel.getId()). //
-                build();
+        currentChannel = channel; // FIXME: If server rejects the move, we don't really move! ==> This needs to be set in UserState message handler
+
+        Mumble.UserState userState = Mumble.UserState.newBuilder()
+                .setChannelId(channel.getId())
+                .build();
         tcpConnection.getWriter().queue(new TcpConnection.PacketData((short) EMessageType.UserState.ordinal(), userState.toByteArray()));
     }
 
     public void sendMessage(String message) {
-        Mumble.TextMessage msg = Mumble.TextMessage.newBuilder().setMessage(message).build();
+        Mumble.TextMessage msg = Mumble.TextMessage.newBuilder()
+                .setMessage(message)
+                .addChannelId(currentChannel.getId())
+                .build();
         tcpConnection.getWriter().queue(new TcpConnection.PacketData((short) EMessageType.TextMessage.ordinal(), msg.toByteArray()));
     }
 

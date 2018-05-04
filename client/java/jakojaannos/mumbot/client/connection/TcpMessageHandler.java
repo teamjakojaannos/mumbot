@@ -30,7 +30,7 @@ public class TcpMessageHandler {
         handlers.put(type, handler);
     }
 
-    void handle(MumbleClient client, SocketWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
+    void handle(SocketWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
         if (!mappers.containsKey(type) || !handlers.containsKey(type)) {
             System.out.println("No handler registered for type \"" + type + "\"");
             return;

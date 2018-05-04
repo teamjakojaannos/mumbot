@@ -67,7 +67,7 @@ public class TcpConnection {
     private void loop() {
         while (isConnected()) {
             while (reader.hasPackets()) {
-                System.out.println("Iterating inQueue");
+                // System.out.println("Iterating inQueue");
 
                 PacketData data = reader.dequeue();
                 EMessageType type = EMessageType.fromOrdinal(data.type);

@@ -14,6 +14,6 @@ public class HandlerUserState implements TcpMessageHandler.IHandler<Mumble.UserS
 
     @Override
     public void handle(TcpWriter writer, Mumble.UserState userState) {
-        System.out.printf("Received user state: #%d (#%d) %s, %s", userState.getSession(), userState.getUserId(), userState.getName(), userState.getComment());
+        System.out.printf("Received user state: #%d (#%d) %s, %s\n", userState.getSession(), userState.getUserId(), userState.getName(), userState.getComment());
     }
 }

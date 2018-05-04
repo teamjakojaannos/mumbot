@@ -60,7 +60,7 @@ class TcpReader implements Runnable {
             InputStream stream = socket.getInputStream();
 
             // Read prefix
-            System.out.println("reading prefix");
+            // System.out.println("reading prefix");
             if (readBytes(stream, PREFIX_LENGTH)) {
                 return true;
             }
@@ -73,7 +73,7 @@ class TcpReader implements Runnable {
 
 
             // Read message
-            System.out.println("reading message");
+            // System.out.println("reading message");
             if (readBytes(stream, msgLength - buffer.position())) {
                 return true;
             }
@@ -85,14 +85,14 @@ class TcpReader implements Runnable {
             buffer.clear();
 
 
-            System.out.println("queuing packet");
+            // System.out.println("queuing packet");
             synchronized (inQueue) {
-                System.out.println("read queue packet - claimed lock");
+                // System.out.println("read queue packet - claimed lock");
                 inQueue.add(new TcpConnection.PacketData(msgType, data));
                 hasPackets.set(true);
                 inQueue.notifyAll();
             }
-            System.out.println("read queue packet - released lock");
+            // System.out.println("read queue packet - released lock");
         } catch (IOException e) {
             e.printStackTrace();
         }

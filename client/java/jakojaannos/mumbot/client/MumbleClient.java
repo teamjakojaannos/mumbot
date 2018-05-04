@@ -7,6 +7,7 @@ import jakojaannos.mumbot.client.connection.EMessageType;
 import jakojaannos.mumbot.client.connection.TcpConnection;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 import jakojaannos.mumbot.client.connection.messages.HandlerChannelState;
+import jakojaannos.mumbot.client.connection.messages.HandlerTextMessage;
 import jakojaannos.mumbot.client.connection.messages.HandlerUserState;
 import jakojaannos.mumbot.client.connection.messages.HandlerVersion;
 import jakojaannos.mumbot.client.server.ServerInfo;
@@ -113,11 +114,16 @@ public class MumbleClient {
         chatListeners.add(listener);
     }
 
+    public List<IChatListener> getChatListeners(){
+        return new ArrayList<IChatListener>(chatListeners);
+    }
+
 
     private void registerTcpMessageHandlers() {
         tcpMessageHandler.register(EMessageType.Version, new HandlerVersion(), Mumble.Version::parseFrom);
         tcpMessageHandler.register(EMessageType.ChannelState, new HandlerChannelState(channels), Mumble.ChannelState::parseFrom);
         tcpMessageHandler.register(EMessageType.UserState, new HandlerUserState(users), Mumble.UserState::parseFrom);
+        tcpMessageHandler.register(EMessageType.TextMessage, new HandlerTextMessage(this), Mumble.TextMessage::parseFrom);
 
         // Ignored messages
         tcpMessageHandler.register(EMessageType.Authenticate, (w, msg) -> {}, Mumble.Authenticate::parseFrom);

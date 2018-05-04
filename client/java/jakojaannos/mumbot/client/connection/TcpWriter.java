@@ -39,7 +39,7 @@ public class TcpWriter implements Runnable {
     private void doWrite() {
         synchronized (outQueue) {
             while (!outQueue.isEmpty()) {
-                System.out.println("Writing!");
+                // System.out.println("Writing!");
                 write(outQueue.pollLast());
             }
         }

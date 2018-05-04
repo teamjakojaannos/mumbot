@@ -20,7 +20,7 @@ public class Main {
         } catch (InterruptedException e){
         }
 
-        client.sendMessage("PERKELEEN PERKELE!!!");
+        client.sendMessage("aaa<br>bbb<br />ccc!!!");
 
     }
 }

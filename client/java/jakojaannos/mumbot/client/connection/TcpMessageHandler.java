@@ -30,7 +30,7 @@ public class TcpMessageHandler {
         handlers.put(type, handler);
     }
 
-    void handle(SocketWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
+    void handle(TcpWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
         if (!mappers.containsKey(type) || !handlers.containsKey(type)) {
             System.out.println("No handler registered for type \"" + type + "\"");
             return;
@@ -44,7 +44,7 @@ public class TcpMessageHandler {
      * Handles message of given type
      */
     public interface IHandler<TMessage> {
-        void handle(SocketWriter writer, TMessage message);
+        void handle(TcpWriter writer, TMessage message);
     }
 
     /**
@@ -63,7 +63,7 @@ public class TcpMessageHandler {
         }
 
         @Override
-        public abstract void handle(SocketWriter writer, TMessage message);
+        public abstract void handle(TcpWriter writer, TMessage message);
     }
 
     /**

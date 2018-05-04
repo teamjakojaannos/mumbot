@@ -7,12 +7,12 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Supplier;
 
-public class SocketWriter implements Runnable {
+public class TcpWriter implements Runnable {
     private final Socket socket;
     private final Deque<TcpConnection.PacketData> outQueue;
     private final Supplier<Boolean> running;
 
-    SocketWriter(Socket socket, Supplier<Boolean> running) {
+    TcpWriter(Socket socket, Supplier<Boolean> running) {
         this.socket = socket;
         this.running = running;
 
@@ -28,12 +28,12 @@ public class SocketWriter implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("SocketWriter entering loop");
+        System.out.println("TcpWriter entering loop");
         while (running.get()) {
             doWrite();
             doWait();
         }
-        System.out.println("SocketWriter leaving loop");
+        System.out.println("TcpWriter leaving loop");
     }
 
     private void doWrite() {

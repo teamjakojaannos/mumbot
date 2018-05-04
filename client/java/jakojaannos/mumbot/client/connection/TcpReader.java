@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 /**
  * Handles reading mumble protocol packets from non-blocking {@link SocketChannel}
  */
-class SocketReader implements Runnable {
+class TcpReader implements Runnable {
     private static final int PREFIX_LENGTH = 6;
     private static final int MESSAGE_MAX_LENGTH = 8388608; // 8MiB - 1B = 8388608B
     private static final int BUFFER_MAX_CAPACITY = PREFIX_LENGTH + MESSAGE_MAX_LENGTH;
@@ -25,7 +25,7 @@ class SocketReader implements Runnable {
 
     private ByteBuffer buffer;
 
-    SocketReader(Socket socket, Supplier<Boolean> running) {
+    TcpReader(Socket socket, Supplier<Boolean> running) {
         this.socket = socket;
         this.running = running;
 
@@ -47,13 +47,13 @@ class SocketReader implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("SocketReader entering loop");
+        System.out.println("TcpReader entering loop");
         while (running.get()) {
             doRead();
         }
 
         inQueue.notifyAll();
-        System.out.println("SocketReader leaving loop");
+        System.out.println("TcpReader leaving loop");
     }
 
     private void doRead() {

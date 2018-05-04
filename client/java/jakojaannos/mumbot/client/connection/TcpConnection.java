@@ -12,13 +12,13 @@ import java.net.Socket;
 public class TcpConnection {
     private final Socket socket;
 
-    private final SocketReader reader;
-    private final SocketWriter writer;
-    private final SocketKeepalive keepalive;
+    private final TcpReader reader;
+    private final TcpWriter writer;
+    private final TcpKeepalive keepalive;
 
     private final TcpMessageHandler messageHandler;
 
-    public SocketWriter getWriter() {
+    public TcpWriter getWriter() {
         return writer;
     }
 
@@ -43,9 +43,9 @@ public class TcpConnection {
             return;
         }
 
-        this.reader = new SocketReader(socket, this::isConnected);
-        this.writer = new SocketWriter(socket, this::isConnected);
-        this.keepalive = new SocketKeepalive(writer, 15000L, this::isConnected);
+        this.reader = new TcpReader(socket, this::isConnected);
+        this.writer = new TcpWriter(socket, this::isConnected);
+        this.keepalive = new TcpKeepalive(writer, 15000L, this::isConnected);
 
         new Thread(reader).start();
         new Thread(writer).start();

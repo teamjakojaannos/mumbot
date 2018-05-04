@@ -2,7 +2,7 @@ package jakojaannos.mumbot.client.connection.messages;
 
 import MumbleProto.Mumble;
 import jakojaannos.mumbot.client.connection.EMessageType;
-import jakojaannos.mumbot.client.connection.SocketWriter;
+import jakojaannos.mumbot.client.connection.TcpWriter;
 import jakojaannos.mumbot.client.connection.TcpConnection;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 
@@ -11,7 +11,7 @@ import jakojaannos.mumbot.client.connection.TcpMessageHandler;
  */
 public class HandlerVersion implements TcpMessageHandler.IHandler<Mumble.Version> {
     @Override
-    public void handle(SocketWriter writer, Mumble.Version version) {
+    public void handle(TcpWriter writer, Mumble.Version version) {
         System.out.printf("Received server version info: %s, %s, %s\n", version.getRelease(), version.getOsVersion(), version.getOs());
 
         final String username = "MumbotReborn"; // TODO: Read these from config

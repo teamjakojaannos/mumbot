@@ -7,8 +7,8 @@ import java.util.function.Supplier;
 /**
  * Runnable task for sending ping/keepalive messages at set interval to the server.
  */
-class SocketKeepalive implements Runnable {
-    private final SocketWriter writer;
+class TcpKeepalive implements Runnable {
+    private final TcpWriter writer;
     private final Supplier<Boolean> running;
 
     private long pingInterval;
@@ -32,7 +32,7 @@ class SocketKeepalive implements Runnable {
     }
 
 
-    SocketKeepalive(SocketWriter writer, long pingInterval, Supplier<Boolean> running) {
+    TcpKeepalive(TcpWriter writer, long pingInterval, Supplier<Boolean> running) {
         this.writer = writer;
         this.running = running;
 

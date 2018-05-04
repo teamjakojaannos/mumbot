@@ -1,8 +1,8 @@
-package jakojaannos.mumbot.bot;
+package jakojaannos.mumbot.bot.commands;
 
+import jakojaannos.mumbot.bot.Command;
 import jakojaannos.mumbot.client.MumbleClient;
 
-import java.util.HashMap;
 import java.util.List;
 
 public class CommandHelp extends Command {
@@ -23,7 +23,7 @@ public class CommandHelp extends Command {
         for (Command command : commandList) {
             // message += "commandName [arg1] - how to use. Aliases: cmd, commandName"
             List<String> aliases = command.getAliases();
-            message += "\n" + aliases.get(0) + " " + command.getManual();
+            message += "<br>" + aliases.get(0) + " " + command.getManual();
 
             if (aliases.size() > 1) {
                 // list alises

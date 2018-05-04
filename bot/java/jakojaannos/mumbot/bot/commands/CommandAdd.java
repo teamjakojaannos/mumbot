@@ -1,8 +1,7 @@
-package jakojaannos.mumbot.bot;
+package jakojaannos.mumbot.bot.commands;
 
+import jakojaannos.mumbot.bot.Command;
 import jakojaannos.mumbot.client.MumbleClient;
-
-import java.util.List;
 
 public class CommandAdd extends Command {
 
@@ -21,7 +20,7 @@ public class CommandAdd extends Command {
 
     @Override
     public String getManual() {
-        return "[URL] - adds song to queue.";
+        return "[URL] - adds song to queue and displays its name.";
     }
 
 }

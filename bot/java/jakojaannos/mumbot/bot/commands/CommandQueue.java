@@ -1,5 +1,6 @@
-package jakojaannos.mumbot.bot;
+package jakojaannos.mumbot.bot.commands;
 
+import jakojaannos.mumbot.bot.Command;
 import jakojaannos.mumbot.client.MumbleClient;
 
 public class CommandQueue extends Command {
@@ -7,6 +8,7 @@ public class CommandQueue extends Command {
     public CommandQueue(MumbleClient client){
         super(client);
         aliases.add("queue");
+        aliases.add("q");
     }
 
     @Override
@@ -24,10 +26,10 @@ public class CommandQueue extends Command {
             for (int i = 0; i < songs.length; i++) {
                 if ( i == 4){
                     // if there are more than 4 songs left in queue, display "(+ n more songs)"
-                    message += "\n(+ " + (songs.length-i) + " more songs)";
+                    message += "<br>(+ " + (songs.length-i) + " more songs)";
                     break;
                 }
-                message += "\n" + songs[i];
+                message += "<br>" + songs[i];
             }
         }
 

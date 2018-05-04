@@ -1,12 +1,12 @@
 package jakojaannos.mumbot.bot;
 
 
+import jakojaannos.mumbot.bot.commands.*;
 import jakojaannos.mumbot.client.IChatListener;
 import jakojaannos.mumbot.client.MumbleClient;
 import jakojaannos.mumbot.client.users.UserInfo;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MessageParser implements IChatListener {

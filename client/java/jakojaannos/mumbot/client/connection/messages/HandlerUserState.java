@@ -18,22 +18,23 @@ public class HandlerUserState implements TcpMessageHandler.IHandler<Mumble.UserS
         System.out.printf("Received user state: #%d (#%d) %s, %s\n", userState.getSession(), userState.getUserId(), userState.getName(), userState.getComment());
 
         UserInfo user = new UserInfo();
-        user.setSession(userState.getSession());
 
-        user.setName(userState.getName());
-        user.setUserId(userState.getUserId());
-        user.setChannelId(userState.getChannelId());
-        user.setMute(userState.getMute());
-        user.setDeaf(userState.getDeaf());
-        user.setSelf_mute(userState.getSelfMute());
-        user.setSelf_deaf(userState.getSelfDeaf());
-        user.setPlugin_context(userState.getPluginContext().toByteArray());
-        user.setPlugin_identity(userState.getPluginIdentity());
-        user.setComment(userState.getComment());
-        user.setHash(userState.getHash());
-        user.setComment_hash(userState.getCommentHash().toByteArray());
-        user.setPriority_speaker(userState.getPrioritySpeaker());
-        user.setRecording(userState.getRecording());
+        if (userState.hasSession()) user.setSession(userState.getSession());
+        if (userState.hasName()) user.setName(userState.getName());
+        if (userState.hasUserId()) user.setUserId(userState.getUserId());
+        if (userState.hasChannelId()) user.setChannelId(userState.getChannelId());
+        if (userState.hasMute()) user.setMute(userState.getMute());
+        if (userState.hasDeaf()) user.setDeaf(userState.getDeaf());
+        if (userState.hasSelfMute()) user.setSelf_mute(userState.getSelfMute());
+        if (userState.hasSelfDeaf()) user.setSelf_deaf(userState.getSelfDeaf());
+        if (userState.hasPluginContext()) user.setPlugin_context(userState.getPluginContext().toByteArray());
+        if (userState.hasPluginIdentity()) user.setPlugin_identity(userState.getPluginIdentity());
+        if (userState.hasComment()) user.setComment(userState.getComment());
+        if (userState.hasHash()) user.setHash(userState.getHash());
+        if (userState.hasCommentHash()) user.setComment_hash(userState.getCommentHash().toByteArray());
+        if (userState.hasPrioritySpeaker()) user.setPriority_speaker(userState.getPrioritySpeaker());
+        if (userState.hasRecording()) user.setRecording(userState.getRecording());
+
 
     }
 }

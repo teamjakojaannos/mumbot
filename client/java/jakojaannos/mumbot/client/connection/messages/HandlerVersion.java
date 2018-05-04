@@ -9,10 +9,10 @@ import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 /**
  * Receives version information from the server and sends back authenticate message
  */
-public class HandlerVersion implements TcpMessageHandler.Handler<Mumble.Version> {
+public class HandlerVersion implements TcpMessageHandler.IHandler<Mumble.Version> {
     @Override
     public void handle(SocketWriter writer, Mumble.Version version) {
-        System.out.println(String.format("Received server version info: %s, %s, %s", version.getRelease(), version.getOsVersion(), version.getOs()));
+        System.out.printf("Received server version info: %s, %s, %s\n", version.getRelease(), version.getOsVersion(), version.getOs());
 
         final String username = "MumbotReborn"; // TODO: Read these from config
         final String password = "";

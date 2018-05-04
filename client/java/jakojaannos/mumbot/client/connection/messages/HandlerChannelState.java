@@ -5,7 +5,7 @@ import jakojaannos.mumbot.client.channels.ChannelManager;
 import jakojaannos.mumbot.client.connection.SocketWriter;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 
-public class HandlerChannelState implements TcpMessageHandler.Handler<Mumble.ChannelState> {
+public class HandlerChannelState implements TcpMessageHandler.IHandler<Mumble.ChannelState> {
     private final ChannelManager channelManager;
 
     public HandlerChannelState(ChannelManager channelManager) {

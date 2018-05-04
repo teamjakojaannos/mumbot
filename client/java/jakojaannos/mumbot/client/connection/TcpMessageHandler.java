@@ -1,6 +1,7 @@
 package jakojaannos.mumbot.client.connection;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import jakojaannos.mumbot.client.MumbleClient;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +30,7 @@ public class TcpMessageHandler {
         handlers.put(type, handler);
     }
 
-    void handle(SocketWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
+    void handle(MumbleClient client, SocketWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
         if (!mappers.containsKey(type) || !handlers.containsKey(type)) {
             System.out.println("No handler registered for type \"" + type + "\"");
             return;
@@ -38,11 +39,31 @@ public class TcpMessageHandler {
         handlers.get(type).handle(writer, mappers.get(type).apply(data));
     }
 
+
     /**
      * Handles message of given type
      */
-    public interface Handler<TMessage> {
+    public interface IHandler<TMessage> {
         void handle(SocketWriter writer, TMessage message);
+    }
+
+    /**
+     * Handles message of given type. Provides access to mumble client
+     */
+    public static abstract class Handler<TMessage> implements IHandler<TMessage> {
+
+        private final MumbleClient client;
+
+        protected Handler(MumbleClient client) {
+            this.client = client;
+        }
+
+        protected MumbleClient getClient(){
+            return client;
+        }
+
+        @Override
+        public abstract void handle(SocketWriter writer, TMessage message);
     }
 
     /**

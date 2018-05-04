@@ -5,7 +5,7 @@ import jakojaannos.mumbot.client.connection.SocketWriter;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 import jakojaannos.mumbot.client.users.UserManager;
 
-public class HandlerUserState implements TcpMessageHandler.Handler<Mumble.UserState> {
+public class HandlerUserState implements TcpMessageHandler.IHandler<Mumble.UserState> {
     private final UserManager userManager;
 
     public HandlerUserState(UserManager userManager) {

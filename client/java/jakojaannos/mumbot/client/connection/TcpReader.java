@@ -48,22 +48,21 @@ class TcpReader implements Runnable {
     @Override
     public void run() {
         System.out.println("TcpReader entering loop");
-        while (running.get()) {
-            doRead();
-        }
+        while (running.get() && !doRead())
+            ; // NO-OP
 
         inQueue.notifyAll();
         System.out.println("TcpReader leaving loop");
     }
 
-    private void doRead() {
+    private boolean doRead() {
         try {
             InputStream stream = socket.getInputStream();
 
             // Read prefix
             System.out.println("reading prefix");
             if (readBytes(stream, PREFIX_LENGTH)) {
-                return;
+                return true;
             }
             buffer.flip();
 
@@ -76,7 +75,7 @@ class TcpReader implements Runnable {
             // Read message
             System.out.println("reading message");
             if (readBytes(stream, msgLength - buffer.position())) {
-                return;
+                return true;
             }
             buffer.flip();
 
@@ -97,6 +96,8 @@ class TcpReader implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return false;
     }
 
     /**

@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class TcpMessageHandler {
     private final Map<EMessageType, DataMapper> mappers = new HashMap<>();
-    private final Map<EMessageType, Handler> handlers = new HashMap<>();
+    private final Map<EMessageType, IHandler> handlers = new HashMap<>();
 
     /**
      * Registers handler which implements both the Handler and the DataMapper interfaces
@@ -20,7 +20,7 @@ public class TcpMessageHandler {
     /**
      * Registers a handler and a mapper for given message type.
      */
-    public <TMessage> void register(EMessageType type, Handler<TMessage> handler, DataMapper<TMessage> mapper) {
+    public <TMessage> void register(EMessageType type, IHandler<TMessage> handler, DataMapper<TMessage> mapper) {
         if (mappers.containsKey(type) || handlers.containsKey(type)) {
             System.out.println("Handler already registered for type \"" + type + "\"");
             return;

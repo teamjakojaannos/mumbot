@@ -19,6 +19,7 @@ public class HandlerChannelState implements TcpMessageHandler.IHandler<Mumble.Ch
         System.out.printf("Received channel state: #%d %s\n", channelState.getChannelId(), channelState.getName());
         Channel channel = new Channel(channelState.getChannelId());
         channel.setName(channelState.getName());
+        channel.setDescription(channelState.getDescription());
 
         channelManager.addChannel(channel);
 

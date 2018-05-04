@@ -1,8 +1,8 @@
 package jakojaannos.mumbot.client.users;
 
 public class UserInfo {
+
     private int session;
-    private int actor;
     private String name;
     private int userId;
     private int channelId;
@@ -10,15 +10,31 @@ public class UserInfo {
     private boolean deaf;
     private boolean self_mute;
     private boolean self_deaf;
-    private byte[] avatar;
     private byte[] plugin_context;
     private String plugin_identity;
     private String comment;
     private String hash;
     private byte[] comment_hash;
-    private byte[] avatar_hash;
     private boolean priority_speaker;
     private boolean recording;
+
+    public UserInfo() {
+        session = -1;
+        name = "UNKNOWN";
+        userId = -1;
+        channelId = -1;
+        mute = false;
+        deaf = false;
+        self_mute = false;
+        self_deaf = false;
+        plugin_context = new byte[0];
+        plugin_identity = "UNKNOWN";
+        comment = "UNKNOWN";
+        hash = "UNKNOWN";
+        comment_hash = new byte[0];
+        priority_speaker = false;
+        recording = false;
+    }
 
     public int getSession() {
         return session;
@@ -26,14 +42,6 @@ public class UserInfo {
 
     public void setSession(int session) {
         this.session = session;
-    }
-
-    public int getActor() {
-        return actor;
-    }
-
-    public void setActor(int actor) {
-        this.actor = actor;
     }
 
     public String getName() {
@@ -92,14 +100,6 @@ public class UserInfo {
         this.self_deaf = self_deaf;
     }
 
-    public byte[] getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(byte[] avatar) {
-        this.avatar = avatar;
-    }
-
     public byte[] getPlugin_context() {
         return plugin_context;
     }
@@ -138,14 +138,6 @@ public class UserInfo {
 
     public void setComment_hash(byte[] comment_hash) {
         this.comment_hash = comment_hash;
-    }
-
-    public byte[] getAvatar_hash() {
-        return avatar_hash;
-    }
-
-    public void setAvatar_hash(byte[] avatar_hash) {
-        this.avatar_hash = avatar_hash;
     }
 
     public boolean isPriority_speaker() {

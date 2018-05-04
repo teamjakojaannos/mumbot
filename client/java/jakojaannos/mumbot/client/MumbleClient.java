@@ -76,12 +76,24 @@ public class MumbleClient {
         connected.set(false);
     }
 
-    public void changeChannel(Channel channel) {
+    public void changeChannel(String channelName) {
+        System.out.println("Trying to change channel to '" + channelName + "'.");
+        Channel channel = channels.getByName(channelName);
 
+        if(channel == null) {
+            System.err.printf("Error! No matching channels for argument '%s'.\n", channelName);
+            return;
+        }
+
+        Mumble.UserState userState = Mumble.UserState.newBuilder(). //
+                setChannelId(channel.getId()). //
+                build();
+        tcpConnection.getWriter().queue(new TcpConnection.PacketData((short) EMessageType.UserState.ordinal(), userState.toByteArray()));
     }
 
     public void sendMessage(String message) {
-
+        Mumble.TextMessage msg = Mumble.TextMessage.newBuilder().setMessage(message).build();
+        tcpConnection.getWriter().queue(new TcpConnection.PacketData((short) EMessageType.TextMessage.ordinal(), msg.toByteArray()));
     }
 
     public void sendMessage(Channel channel, String message) {

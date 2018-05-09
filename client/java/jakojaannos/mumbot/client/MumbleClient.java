@@ -6,10 +6,7 @@ import jakojaannos.mumbot.client.channels.ChannelManager;
 import jakojaannos.mumbot.client.connection.EMessageType;
 import jakojaannos.mumbot.client.connection.TcpConnection;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
-import jakojaannos.mumbot.client.connection.messages.HandlerChannelState;
-import jakojaannos.mumbot.client.connection.messages.HandlerTextMessage;
-import jakojaannos.mumbot.client.connection.messages.HandlerUserState;
-import jakojaannos.mumbot.client.connection.messages.HandlerVersion;
+import jakojaannos.mumbot.client.connection.messages.*;
 import jakojaannos.mumbot.client.server.ServerInfo;
 import jakojaannos.mumbot.client.users.UserInfo;
 import jakojaannos.mumbot.client.users.UserManager;
@@ -32,6 +29,8 @@ public class MumbleClient {
     private ServerInfo serverInfo;
     private Channel currentChannel;
     private AtomicBoolean connected;
+
+    private int session = -1;
 
     private TcpConnection tcpConnection;
     //private UdpConnection udpConnection;
@@ -77,16 +76,41 @@ public class MumbleClient {
         connected.set(false);
     }
 
+
+    public void setSession(int session) {
+        this.session = session;
+    }
+
+    public int getSession() {
+        return session;
+    }
+
+    public void updateChannel() {
+        UserInfo userInfo = users.getBySession(getSession());
+        if (userInfo == null) {
+            System.out.println("Something went wrong...");
+            return;
+        }
+
+        Channel channel = channels.getById(userInfo.getChannelId());
+        if (channel == null) {
+            System.out.println("Something went wrong down here.");
+            return;
+        }
+        currentChannel = channel;
+
+    }
+
     public void changeChannel(String channelName) {
         System.out.println("Trying to change channel to '" + channelName + "'.");
         Channel channel = channels.getByName(channelName);
 
-        if(channel == null) {
+        if (channel == null) {
             System.err.printf("Error! No matching channels for argument '%s'.\n", channelName);
             return;
         }
 
-        currentChannel = channel; // FIXME: If server rejects the move, we don't really move! ==> This needs to be set in UserState message handler
+        //currentChannel = channel; // FIXME: If server rejects the move, we don't really move! ==> This needs to be set in UserState message handler
 
         Mumble.UserState userState = Mumble.UserState.newBuilder()
                 .setChannelId(channel.getId())
@@ -95,6 +119,7 @@ public class MumbleClient {
     }
 
     public void sendMessage(String message) {
+        System.out.printf("Sending message to channel: '%s', id = %d\n", currentChannel.getName(), currentChannel.getId());
         Mumble.TextMessage msg = Mumble.TextMessage.newBuilder()
                 .setMessage(message)
                 .addChannelId(currentChannel.getId())
@@ -114,7 +139,7 @@ public class MumbleClient {
         chatListeners.add(listener);
     }
 
-    public List<IChatListener> getChatListeners(){
+    public List<IChatListener> getChatListeners() {
         return new ArrayList<IChatListener>(chatListeners);
     }
 
@@ -122,10 +147,12 @@ public class MumbleClient {
     private void registerTcpMessageHandlers() {
         tcpMessageHandler.register(EMessageType.Version, new HandlerVersion(), Mumble.Version::parseFrom);
         tcpMessageHandler.register(EMessageType.ChannelState, new HandlerChannelState(channels), Mumble.ChannelState::parseFrom);
-        tcpMessageHandler.register(EMessageType.UserState, new HandlerUserState(users), Mumble.UserState::parseFrom);
+        tcpMessageHandler.register(EMessageType.UserState, new HandlerUserState(users, this), Mumble.UserState::parseFrom);
         tcpMessageHandler.register(EMessageType.TextMessage, new HandlerTextMessage(this), Mumble.TextMessage::parseFrom);
+        tcpMessageHandler.register(EMessageType.ServerSync, new HandlerServerSync(this), Mumble.ServerSync::parseFrom);
 
         // Ignored messages
-        tcpMessageHandler.register(EMessageType.Authenticate, (w, msg) -> {}, Mumble.Authenticate::parseFrom);
+        tcpMessageHandler.register(EMessageType.Authenticate, (w, msg) -> {
+        }, Mumble.Authenticate::parseFrom);
     }
 }

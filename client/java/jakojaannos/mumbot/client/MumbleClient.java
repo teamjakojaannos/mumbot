@@ -6,6 +6,7 @@ import jakojaannos.mumbot.client.channels.ChannelManager;
 import jakojaannos.mumbot.client.connection.EMessageType;
 import jakojaannos.mumbot.client.connection.TcpConnection;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
+import jakojaannos.mumbot.client.connection.UdpConnection;
 import jakojaannos.mumbot.client.connection.messages.*;
 import jakojaannos.mumbot.client.server.ServerInfo;
 import jakojaannos.mumbot.client.users.UserInfo;
@@ -33,7 +34,7 @@ public class MumbleClient {
     private int session = -1;
 
     private TcpConnection tcpConnection;
-    //private UdpConnection udpConnection;
+    private UdpConnection udpConnection;
 
     public ChannelManager getChannels() {
         return channels;
@@ -61,6 +62,7 @@ public class MumbleClient {
     public void connect(String address, int port) {
         try {
             tcpConnection = new TcpConnection(tcpMessageHandler, address, port);
+            udpConnection = new UdpConnection(address, port);
             connected.set(true);
         } catch (IOException e) {
             e.printStackTrace();
@@ -110,8 +112,6 @@ public class MumbleClient {
             return;
         }
 
-        //currentChannel = channel; // FIXME: If server rejects the move, we don't really move! ==> This needs to be set in UserState message handler
-
         Mumble.UserState userState = Mumble.UserState.newBuilder()
                 .setChannelId(channel.getId())
                 .build();
@@ -140,19 +140,25 @@ public class MumbleClient {
     }
 
     public List<IChatListener> getChatListeners() {
-        return new ArrayList<IChatListener>(chatListeners);
+        return new ArrayList<>(chatListeners);
     }
 
 
     private void registerTcpMessageHandlers() {
         tcpMessageHandler.register(EMessageType.Version, new HandlerVersion(), Mumble.Version::parseFrom);
+        tcpMessageHandler.register(EMessageType.CryptSetup, new HandlerCryptSetup(this), Mumble.CryptSetup::parseFrom);
         tcpMessageHandler.register(EMessageType.ChannelState, new HandlerChannelState(channels), Mumble.ChannelState::parseFrom);
         tcpMessageHandler.register(EMessageType.UserState, new HandlerUserState(users, this), Mumble.UserState::parseFrom);
-        tcpMessageHandler.register(EMessageType.TextMessage, new HandlerTextMessage(this), Mumble.TextMessage::parseFrom);
         tcpMessageHandler.register(EMessageType.ServerSync, new HandlerServerSync(this), Mumble.ServerSync::parseFrom);
+
+        tcpMessageHandler.register(EMessageType.TextMessage, new HandlerTextMessage(this), Mumble.TextMessage::parseFrom);
 
         // Ignored messages
         tcpMessageHandler.register(EMessageType.Authenticate, (w, msg) -> {
         }, Mumble.Authenticate::parseFrom);
+    }
+
+    public void setupCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
+        udpConnection.setupCrypt(key, clientNonce, serverNonce);
     }
 }

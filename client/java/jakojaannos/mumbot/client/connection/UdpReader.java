@@ -6,7 +6,9 @@ import org.bouncycastle.crypto.modes.AEADBlockCipher;
 import org.bouncycastle.crypto.modes.OCBBlockCipher;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -27,6 +29,7 @@ public class UdpReader implements Runnable {
     private final AtomicBoolean hasPackets;
 
     private final Cipher cipher;
+    private final byte[] buffer = new byte[1024];
 
     UdpReader(DatagramSocket socket, Supplier<Boolean> running) {
         this.socket = socket;
@@ -49,6 +52,7 @@ public class UdpReader implements Runnable {
         return cipher;
     }
 
+    // TODO: Call from HandlerSetupCrypto
     void initCipher(byte[] key, byte[] nonce) {
         try {
             this.cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new IvParameterSpec(nonce));
@@ -63,7 +67,7 @@ public class UdpReader implements Runnable {
     }
 
     private boolean doRead() {
-        DatagramPacket packet = new DatagramPacket(bufferArr, bufferArr.length);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
         try {
             socket.receive(packet);
@@ -72,8 +76,7 @@ public class UdpReader implements Runnable {
         }
 
         byte[] data = new byte[packet.getLength() - 4];
-        decrypt(bufferArr, packet.getLength(), data);
-
+        decrypt(buffer, packet.getLength(), data);
 
         return false;
     }
@@ -82,14 +85,17 @@ public class UdpReader implements Runnable {
         if (source.length < 4)
             return false;
 
-        int plainLength = source.length - 4;
+        int plainLength = dataLen - 4;
 
-        byte[] saveiv = new byte[AES_BLOCK_SIZE];
-        byte ivbyte = source[0];
+        byte[] plain;
+        try {
+            plain = cipher.doFinal(source, 4, plainLength);
+        } catch (IllegalBlockSizeException | BadPaddingException ignored) {
+            return false;
+        }
 
-        boolean restore = false;
-
-        System.arraycopy(saveiv, 0, decrypt_iv);
+        System.arraycopy(plain, 0, dest, 0, plainLength);
+        return true;
     }
 
     public boolean hasPackets() {

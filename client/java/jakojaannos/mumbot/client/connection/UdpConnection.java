@@ -58,4 +58,8 @@ public class UdpConnection {
 
         return socket;
     }
+
+    public void setupCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
+        throw new IllegalStateException("Not implemented!");
+    }
 }

@@ -49,7 +49,6 @@ public class Channel {
     }
 
     public void setParent(Channel parent) {
-        this.parent.children.remove(this);
         this.parent = parent;
         this.parent.children.add(this);
     }

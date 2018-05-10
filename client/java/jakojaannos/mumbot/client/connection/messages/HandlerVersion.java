@@ -12,7 +12,7 @@ import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 public class HandlerVersion implements TcpMessageHandler.IHandler<Mumble.Version> {
     @Override
     public void handle(TcpWriter writer, Mumble.Version version) {
-        System.out.printf("Received server version info: %s, %s, %s\n", version.getRelease(), version.getOsVersion(), version.getOs());
+        // System.out.printf("Received server version info: %s, %s, %s\n", version.getRelease(), version.getOsVersion(), version.getOs());
 
         final String username = "MumbotReborn"; // TODO: Read these from config
         final String password = "";

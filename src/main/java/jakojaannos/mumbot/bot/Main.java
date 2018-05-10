@@ -7,20 +7,34 @@ public class Main {
         MumbleClient client = new MumbleClient();
         client.connect("saltandrng.net", 64738);
 
-        MessageParser parser = new MessageParser(client);
+        MusicBot parser = new MusicBot(client);
         client.registerChatListener(parser);
 
         try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e){
-        }
-        client.changeChannel("Ohjelmointicorner");
-        try {
-            Thread.sleep(1500);
-        } catch (InterruptedException e){
+            Thread.sleep(1000);
+
+            client.changeChannel("Ohjelmointicorner");
+            Thread.sleep(500);
+            client.sendMessage("Hello programmers!");
+
+
+            Thread.sleep(500);
+            System.out.println("Trying to move to restricted channel.");
+            client.changeChannel("Lassin tirkistelycorner");
+            Thread.sleep(500);
+            client.sendMessage("Hello again programmers!");
+
+            Thread.sleep(500);
+            System.out.println("Trying to move to nonexistent channel.");
+            Thread.sleep(500);
+            client.changeChannel("A non-existing channel");
+            Thread.sleep(500);
+            client.sendMessage("Still programming?!");
+
+        } catch (InterruptedException e) {
         }
 
-        client.sendMessage("aaa<br>bbb<br />ccc!!!");
+
 
     }
 }

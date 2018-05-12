@@ -2,15 +2,15 @@ package jakojaannos.mumbot.client.connection.messages;
 
 import MumbleProto.Mumble;
 import jakojaannos.mumbot.client.MumbleClient;
-import jakojaannos.mumbot.client.connection.TcpWriter;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
 
-public class HandlerUserRemove extends TcpMessageHandler.Handler<Mumble.UserRemove> {
-    public HandlerUserRemove(MumbleClient client) {
-        super(client);
-    }
-
+public class HandlerUserRemove implements TcpMessageHandler.IHandler<Mumble.UserRemove> {
     @Override
-    public void handle(TcpWriter writer, Mumble.UserRemove userRemove) {
+    public void handle(MumbleClient client, Mumble.UserRemove userRemove) {
+        if (userRemove.getSession() == client.getLocalUser().getSession()) {
+            // TODO: disconnect
+        }
+
+        // TODO: Remove user
     }
 }

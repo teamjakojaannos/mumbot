@@ -6,64 +6,56 @@ import jakojaannos.mumbot.client.MumbleClient;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Relays command-channel messages (packets received from TCP connection) to appropriate handlers.
+ */
 public class TcpMessageHandler {
-    private final Map<EMessageType, DataMapper> mappers = new HashMap<>();
-    private final Map<EMessageType, IHandler> handlers = new HashMap<>();
+    private final Map<ETcpMessageType, DataMapper> dataMappers = new HashMap<>();
+    private final Map<ETcpMessageType, MessageMapper> messageMappers = new HashMap<>();
+    private final Map<ETcpMessageType, IHandler> handlers = new HashMap<>();
 
     /**
-     * Registers handler which implements both the Handler and the DataMapper interfaces
+     * Registers a handler and mappers for given message type.
      */
-    public <TMessage, THandler extends Handler<TMessage> & DataMapper<TMessage>> void register(EMessageType type, THandler handler) {
-        register(type, handler, handler);
-    }
-
-    /**
-     * Registers a handler and a mapper for given message type.
-     */
-    public <TMessage> void register(EMessageType type, IHandler<TMessage> handler, DataMapper<TMessage> mapper) {
-        if (mappers.containsKey(type) || handlers.containsKey(type)) {
+    public <TMessage> void register(ETcpMessageType type, IHandler<TMessage> handler, DataMapper<TMessage> dataMapper, MessageMapper<TMessage> msgMapper) {
+        if (dataMappers.containsKey(type) || handlers.containsKey(type)) {
             System.out.println("Handler already registered for type \"" + type + "\"");
             return;
         }
 
-        mappers.put(type, mapper);
+        dataMappers.put(type, dataMapper);
         handlers.put(type, handler);
     }
 
-    void handle(TcpWriter writer, EMessageType type, byte[] data) throws InvalidProtocolBufferException {
-        if (!mappers.containsKey(type) || !handlers.containsKey(type)) {
+    /**
+     * Handles the given message. Converts the raw data to a message object using registered data mapper and relays
+     * the message to appropriate handler.
+     */
+    void handle(MumbleClient client, ETcpMessageType type, byte[] data) throws InvalidProtocolBufferException {
+        if (!dataMappers.containsKey(type) || !handlers.containsKey(type)) {
             System.out.println("No handler registered for type \"" + type + "\"");
             return;
         }
 
-        handlers.get(type).handle(writer, mappers.get(type).apply(data));
+        handlers.get(type).handle(client, dataMappers.get(type).apply(data));
     }
 
+    /**
+     * Converts given message object to byte array using a registered mapper.
+     */
+    public byte[] toByteArray(ETcpMessageType type, Object message) {
+        if (!messageMappers.containsKey(type)) {
+            throw new IllegalStateException("No mapper registered for TCP message type \"" + type + "\"!");
+        }
+
+        return messageMappers.get(type).apply(message);
+    }
 
     /**
      * Handles message of given type
      */
     public interface IHandler<TMessage> {
-        void handle(TcpWriter writer, TMessage message);
-    }
-
-    /**
-     * Handles message of given type. Provides access to mumble client
-     */
-    public static abstract class Handler<TMessage> implements IHandler<TMessage> {
-
-        private final MumbleClient client;
-
-        protected Handler(MumbleClient client) {
-            this.client = client;
-        }
-
-        protected MumbleClient getClient(){
-            return client;
-        }
-
-        @Override
-        public abstract void handle(TcpWriter writer, TMessage message);
+        void handle(MumbleClient client, TMessage message);
     }
 
     /**
@@ -71,5 +63,12 @@ public class TcpMessageHandler {
      */
     public interface DataMapper<TMessage> {
         TMessage apply(byte[] data) throws InvalidProtocolBufferException;
+    }
+
+    /**
+     * Maps messages to raw data (byte arrays)
+     */
+    public interface MessageMapper<TMessage> {
+        byte[] apply(TMessage message);
     }
 }

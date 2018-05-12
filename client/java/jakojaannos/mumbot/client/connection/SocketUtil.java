@@ -4,8 +4,13 @@ package jakojaannos.mumbot.client.connection;
 
 import javax.net.ssl.*;
 import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.security.*;
+import java.net.SocketException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -13,7 +18,7 @@ import java.security.cert.X509Certificate;
  * Wrapper for SocketChannel and SSLEngine
  */
 class SocketUtil {
-    static Socket openSSLSocket(String hostname, int port) {
+    static Socket openTcpSslSocket(String hostname, int port) {
         SSLEngine engine;
         try {
             // Create TLSv1 SSL Context
@@ -22,7 +27,7 @@ class SocketUtil {
             // Initialize and set as default
 
             // FIXME: Dummy trust manager implementation accepts all certificates. Implement certificate storage etc.
-            context.init(new KeyManager[0], new TrustManager[]{ new X509TrustManager() {
+            context.init(new KeyManager[0], new TrustManager[]{new X509TrustManager() {
                 @Override
                 public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
                 }
@@ -47,5 +52,17 @@ class SocketUtil {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static DatagramSocket openUdpDatagramSocket(String hostname, int port) {
+        DatagramSocket socket;
+        try {
+            socket = new DatagramSocket(new InetSocketAddress(hostname, port));
+            socket.setReceiveBufferSize(1024);
+        } catch (SocketException e) {
+            socket = null;
+        }
+
+        return socket;
     }
 }

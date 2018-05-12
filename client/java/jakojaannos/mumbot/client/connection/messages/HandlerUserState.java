@@ -3,29 +3,18 @@ package jakojaannos.mumbot.client.connection.messages;
 import MumbleProto.Mumble;
 import jakojaannos.mumbot.client.MumbleClient;
 import jakojaannos.mumbot.client.connection.TcpMessageHandler;
-import jakojaannos.mumbot.client.connection.TcpWriter;
 import jakojaannos.mumbot.client.users.UserInfo;
-import jakojaannos.mumbot.client.users.UserManager;
 
 public class HandlerUserState implements TcpMessageHandler.IHandler<Mumble.UserState> {
-    private final UserManager userManager;
-    private final MumbleClient client;
-
-    public HandlerUserState(UserManager userManager, MumbleClient client) {
-        this.userManager = userManager;
-        this.client = client;
-    }
-
     @Override
-    public void handle(TcpWriter writer, Mumble.UserState userState) {
-        // System.out.printf("Received user state: #%d (#%d) %s, %s\n", userState.getSession(), userState.getUserId(), userState.getName(), userState.getComment());
+    public void handle(MumbleClient client, Mumble.UserState userState) {
         System.out.printf("Received user state: s = %d, id = %d, name = %s\n", userState.getSession(), userState.getUserId(), userState.getName());
 
-        UserInfo user = userManager.getBySession(userState.getSession());
+        UserInfo user = client.getUsers().getBySession(userState.getSession());
 
         if (user == null) {
             user = new UserInfo();
-            userManager.addUser(user);
+            client.getUsers().addUser(user);
         }
 
         if (userState.hasSession()) user.setSession(userState.getSession());
@@ -43,7 +32,5 @@ public class HandlerUserState implements TcpMessageHandler.IHandler<Mumble.UserS
         if (userState.hasCommentHash()) user.setComment_hash(userState.getCommentHash().toByteArray());
         if (userState.hasPrioritySpeaker()) user.setPriority_speaker(userState.getPrioritySpeaker());
         if (userState.hasRecording()) user.setRecording(userState.getRecording());
-
-        if (userState.getSession() == client.getSession()) client.updateChannel();
     }
 }

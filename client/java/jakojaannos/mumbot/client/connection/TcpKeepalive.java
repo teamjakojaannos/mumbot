@@ -53,7 +53,7 @@ class TcpKeepalive implements Runnable {
                 .setTimestamp(0L) // FIXME: Handle timestamps
                 .build();
 
-        writer.queue(new TcpConnection.PacketData((short) EMessageType.Ping.ordinal(), ping.toByteArray()));
+        writer.queue(new TcpPacketData((short) ETcpMessageType.Ping.ordinal(), ping.toByteArray()));
     }
 
     private void doWait() {

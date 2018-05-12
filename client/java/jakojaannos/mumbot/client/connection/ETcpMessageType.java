@@ -1,6 +1,6 @@
 package jakojaannos.mumbot.client.connection;
 
-public enum EMessageType {
+public enum ETcpMessageType {
     Version,
     UDPTunnel,
     Authenticate,
@@ -28,7 +28,7 @@ public enum EMessageType {
     ServerConfig,
     SuggestConfig;
 
-    public static EMessageType fromOrdinal(int ordinal) {
+    public static ETcpMessageType fromOrdinal(int ordinal) {
         return values()[ordinal];
     }
 }

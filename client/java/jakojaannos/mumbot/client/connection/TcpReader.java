@@ -4,14 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
- * Handles reading mumble protocol packets from non-blocking {@link SocketChannel}
+ * Handles reading mumble protocol packets from command-channel {@link Socket TCP-socket}. Implementation guarantees
+ * thread safe behavior for {@link #dequeue}
  */
 class TcpReader implements Runnable {
     private static final int PREFIX_LENGTH = 6;
@@ -20,11 +20,17 @@ class TcpReader implements Runnable {
 
     private final Socket socket;
     private final Supplier<Boolean> running;
-    private final Deque<TcpConnection.PacketData> inQueue;
+    private final Deque<TcpPacketData> inQueue;
     private final AtomicBoolean hasPackets = new AtomicBoolean();
 
     private ByteBuffer buffer;
 
+    /**
+     * Constructs a new instance. Assigns fields to given values and allocates message buffer.
+     *
+     * @param socket  Socket to read from
+     * @param running Supplier supplying connection status. Task loops until status is false
+     */
     TcpReader(Socket socket, Supplier<Boolean> running) {
         this.socket = socket;
         this.running = running;
@@ -33,11 +39,14 @@ class TcpReader implements Runnable {
         this.inQueue = new ArrayDeque<>();
     }
 
-    TcpConnection.PacketData dequeue() {
-        TcpConnection.PacketData data;
+    /**
+     * Pops the first element from the queue. Operation blocks until calling thread claims the lock on inQueue
+     */
+    TcpPacketData dequeue() {
+        TcpPacketData data;
 
         synchronized (inQueue) {
-            data = inQueue.pollLast();
+            data = inQueue.pop();
             hasPackets.set(!inQueue.isEmpty());
             inQueue.notifyAll();
         }
@@ -87,12 +96,10 @@ class TcpReader implements Runnable {
 
             // System.out.println("queuing packet");
             synchronized (inQueue) {
-                // System.out.println("read queue packet - claimed lock");
-                inQueue.add(new TcpConnection.PacketData(msgType, data));
+                inQueue.addLast(new TcpPacketData(ETcpMessageType.fromOrdinal(msgType), data));
                 hasPackets.set(true);
                 inQueue.notifyAll();
             }
-            // System.out.println("read queue packet - released lock");
         } catch (IOException e) {
             e.printStackTrace();
         }

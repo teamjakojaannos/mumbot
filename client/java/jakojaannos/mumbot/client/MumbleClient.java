@@ -34,6 +34,10 @@ public class MumbleClient implements IMumbleClient {
 
     private int session;
 
+    public boolean isConnected() {
+        return connected.get();
+    }
+
     @Override
     public Connection getConnection() {
         return connection;
@@ -71,7 +75,6 @@ public class MumbleClient implements IMumbleClient {
     public void connect(String address, int port) {
         try {
             connection = new Connection(this, tcpMessageHandler, udpMessageHandler, address, port);
-            connected.set(true);
 
             final short major = 1; // TODO: Read these from config/set via buildscript
             final byte minor = 0;
@@ -84,6 +87,7 @@ public class MumbleClient implements IMumbleClient {
             connection.sendTcp(ETcpMessageType.Version, version);
         } catch (IOException e) {
             e.printStackTrace();
+            this.connected.set(false);
         }
     }
 
@@ -164,11 +168,17 @@ public class MumbleClient implements IMumbleClient {
         tcpMessageHandler.register(ETcpMessageType.ServerSync, new HandlerServerSync(), Mumble.ServerSync::parseFrom, Mumble.ServerSync::toByteArray);
 
         tcpMessageHandler.register(ETcpMessageType.TextMessage, new HandlerTextMessage(), Mumble.TextMessage::parseFrom, Mumble.TextMessage::toByteArray);
+
+
+        // TODO: Properly handle these messages (stubs are here to prevent exceptions due to missing handlers)
+        tcpMessageHandler.register(ETcpMessageType.Ping, (client, o) -> {}, Mumble.Ping::parseFrom, Mumble.Ping::toByteArray);
+        tcpMessageHandler.register(ETcpMessageType.Authenticate, (client, o) -> {}, Mumble.Authenticate::parseFrom, Mumble.Authenticate::toByteArray);
     }
 
     // TODO: Figure out something to hide these from the public interface
-    public void setSession(int session) {
+    public void onConnectReady(int session) {
         this.session = session;
+        this.connected.set(true);
     }
 
     public void setupCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {

@@ -6,6 +6,7 @@ import jakojaannos.mumbot.client.MumbleClient;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 /**
@@ -47,7 +48,7 @@ public class Connection implements IConnection {
 
     public Connection(MumbleClient client, TcpMessageHandler tcpHandler, UdpMessageHandler udpHandler, String hostname, int port) throws IOException {
         this.tcpSocket = SocketUtil.openTcpSslSocket(hostname, port);
-        this.udpSocket = SocketUtil.openUdpDatagramSocket(hostname, port);
+        this.udpSocket = SocketUtil.openUdpDatagramSocket();
         if (this.tcpSocket == null || this.udpSocket == null) {
             this.tcpReader = null;
             this.tcpWriter = null;
@@ -73,10 +74,10 @@ public class Connection implements IConnection {
 
         this.tcpReader = new TcpReader(tcpSocket, this::isConnected);
         this.tcpWriter = new TcpWriter(tcpSocket, this::isConnected);
-        this.keepalive = new TcpKeepalive(tcpWriter, 15000L, this::isConnected);
+        this.keepalive = new TcpKeepalive(this, 15000L, this::isConnected);
 
         this.udpReader = new UdpReader(udpSocket, this::isConnected);
-        this.udpWriter = new UdpWriter(udpSocket, this::isConnected);
+        this.udpWriter = new UdpWriter(udpSocket, new InetSocketAddress(hostname, port), this::isConnected);
 
         new Thread(tcpReader).start();
         new Thread(tcpWriter).start();

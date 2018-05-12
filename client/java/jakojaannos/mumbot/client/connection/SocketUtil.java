@@ -49,17 +49,20 @@ class SocketUtil {
 
             return context.getSocketFactory().createSocket(hostname, port);
         } catch (NoSuchAlgorithmException | KeyManagementException | IOException e) {
+            System.err.println("Error opening SSL Socket");
             e.printStackTrace();
             return null;
         }
     }
 
-    public static DatagramSocket openUdpDatagramSocket(String hostname, int port) {
+    public static DatagramSocket openUdpDatagramSocket() {
         DatagramSocket socket;
         try {
-            socket = new DatagramSocket(new InetSocketAddress(hostname, port));
+            socket = new DatagramSocket();
             socket.setReceiveBufferSize(1024);
         } catch (SocketException e) {
+            System.err.println("Error opening datagram socket:");
+            e.printStackTrace();
             socket = null;
         }
 

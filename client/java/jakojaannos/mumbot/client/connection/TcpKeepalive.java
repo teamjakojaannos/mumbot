@@ -8,7 +8,7 @@ import java.util.function.Supplier;
  * Runnable task for sending ping/keepalive messages at set interval to the server.
  */
 class TcpKeepalive implements Runnable {
-    private final TcpWriter writer;
+    private final Connection connection;
     private final Supplier<Boolean> running;
 
     private long pingInterval;
@@ -32,8 +32,8 @@ class TcpKeepalive implements Runnable {
     }
 
 
-    TcpKeepalive(TcpWriter writer, long pingInterval, Supplier<Boolean> running) {
-        this.writer = writer;
+    TcpKeepalive(Connection connection, long pingInterval, Supplier<Boolean> running) {
+        this.connection = connection;
         this.running = running;
 
         this.pingInterval = pingInterval;
@@ -53,7 +53,7 @@ class TcpKeepalive implements Runnable {
                 .setTimestamp(0L) // FIXME: Handle timestamps
                 .build();
 
-        writer.queue(new TcpPacketData((short) ETcpMessageType.Ping.ordinal(), ping.toByteArray()));
+        connection.sendTcp(ETcpMessageType.Ping, ping);
     }
 
     private void doWait() {

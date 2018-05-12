@@ -7,12 +7,17 @@ public class Main {
         MumbleClient client = new MumbleClient();
         client.connect("saltandrng.net", 64738);
 
-        MusicBot parser = new MusicBot(client);
+        MessageParser parser = new MessageParser(client);
         client.registerChatListener(parser);
 
-        try {
-            Thread.sleep(1000);
+        while (!client.isConnected()) {
+            try {
+                Thread.sleep(1L);
+            } catch (InterruptedException ignored) {
+            }
+        }
 
+        try {
             client.changeChannel("Ohjelmointicorner");
             Thread.sleep(500);
             client.sendMessage("Hello programmers!");
@@ -33,7 +38,6 @@ public class Main {
 
         } catch (InterruptedException e) {
         }
-
 
 
     }

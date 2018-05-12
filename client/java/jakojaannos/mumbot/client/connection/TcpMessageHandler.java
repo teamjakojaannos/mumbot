@@ -17,13 +17,14 @@ public class TcpMessageHandler {
     /**
      * Registers a handler and mappers for given message type.
      */
-    public <TMessage> void register(ETcpMessageType type, IHandler<TMessage> handler, DataMapper<TMessage> dataMapper, MessageMapper<TMessage> msgMapper) {
+    public <TMessage> void register(ETcpMessageType type, IHandler<TMessage> handler, DataMapper<TMessage> dataMapper, MessageMapper<TMessage> messageMapper) {
         if (dataMappers.containsKey(type) || handlers.containsKey(type)) {
             System.out.println("Handler already registered for type \"" + type + "\"");
             return;
         }
 
         dataMappers.put(type, dataMapper);
+        messageMappers.put(type, messageMapper);
         handlers.put(type, handler);
     }
 

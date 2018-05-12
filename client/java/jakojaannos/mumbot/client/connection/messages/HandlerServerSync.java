@@ -10,6 +10,6 @@ public class HandlerServerSync implements TcpMessageHandler.IHandler<Mumble.Serv
         System.out.println("Session: " + sync.getSession());
         //System.out.println("Welcome message: " + sync.getWelcomeText());
 
-        client.setSession(sync.getSession());
+        client.onConnectReady(sync.getSession());
     }
 }

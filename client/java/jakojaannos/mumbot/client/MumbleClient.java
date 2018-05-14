@@ -80,7 +80,7 @@ public class MumbleClient implements IMumbleClient {
             final byte minor = 0;
             final byte patch = 0;
             Mumble.Version version = Mumble.Version.newBuilder()
-                    .setVersion((major << 2) + (minor << 1) + patch)
+                    .setVersion((major << 16) | (minor << 8) | patch)
                     .setRelease("mumbot")
                     .build();
 

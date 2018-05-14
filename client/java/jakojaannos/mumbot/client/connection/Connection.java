@@ -28,6 +28,8 @@ public class Connection implements IConnection {
 
     private final MumbleClient client;
 
+    private boolean cryptValid;
+
 
     /**
      * Initializes UDP channel crypto with given keys and IVs
@@ -35,6 +37,8 @@ public class Connection implements IConnection {
     public void setupUdpCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
         udpReader.initCipher(key, serverNonce);
         udpWriter.initCipher(key, clientNonce);
+
+        cryptValid = true;
     }
 
     /**
@@ -96,6 +100,13 @@ public class Connection implements IConnection {
         tcpWriter.queue(new TcpPacketData(type, tcpHandler.toByteArray(type, message)));
     }
 
+    /**
+     * Queues voice channel message for sending
+     */
+    public void sendUdp(UdpMessage message) {
+        udpWriter.queue(message);
+    }
+
 
     private void loop() {
         while (isConnected()) {
@@ -112,15 +123,13 @@ public class Connection implements IConnection {
                 }
             }
 
-            while (udpReader.hasPackets()) {
+            while (udpReader.hasPackets() && cryptValid) {
                 UdpMessage message = udpReader.pop();
-                EUdpMessageType type = EUdpMessageType.fromOrdinal(message.getType());
-
-                // TODO: Handle UDP messages
+                udpHandler.handle(message);
             }
 
             try {
-                Thread.sleep(100L);
+                Thread.sleep(1L);
             } catch (InterruptedException ignored) {
             }
         }

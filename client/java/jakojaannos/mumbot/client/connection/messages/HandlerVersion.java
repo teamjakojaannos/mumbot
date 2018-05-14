@@ -17,6 +17,7 @@ public class HandlerVersion implements TcpMessageHandler.IHandler<Mumble.Version
         Mumble.Authenticate authenticate = Mumble.Authenticate.newBuilder()
                 .setUsername(username)
                 .setPassword(password)
+                .setOpus(true)
                 //.setTokens(0, "TokenHere")
                 .build();
 

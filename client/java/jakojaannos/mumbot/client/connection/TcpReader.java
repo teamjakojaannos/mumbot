@@ -5,24 +5,18 @@ import java.io.InputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
  * Handles reading mumble protocol packets from command-channel {@link Socket TCP-socket}. Implementation guarantees
- * thread safe behavior for {@link #dequeue}
+ * thread safe behavior for {@link #pop}
  */
-class TcpReader implements Runnable {
+class TcpReader extends SocketReaderBase<TcpPacketData> {
     private static final int PREFIX_LENGTH = 6;
     private static final int MESSAGE_MAX_LENGTH = 8388608; // 8MiB - 1B = 8388608B
     private static final int BUFFER_MAX_CAPACITY = PREFIX_LENGTH + MESSAGE_MAX_LENGTH;
 
     private final Socket socket;
-    private final Supplier<Boolean> running;
-    private final Deque<TcpPacketData> inQueue;
-    private final AtomicBoolean hasPackets = new AtomicBoolean();
-
     private ByteBuffer buffer;
 
     /**
@@ -31,47 +25,30 @@ class TcpReader implements Runnable {
      * @param socket  Socket to read from
      * @param running Supplier supplying connection status. Task loops until status is false
      */
-    TcpReader(Socket socket, Supplier<Boolean> running) {
+    TcpReader(Socket socket, Connection connection) {
+        super(connection);
         this.socket = socket;
-        this.running = running;
 
         this.buffer = ByteBuffer.allocate(BUFFER_MAX_CAPACITY);
-        this.inQueue = new ArrayDeque<>();
-    }
-
-    /**
-     * Pops the first element from the queue. Operation blocks until calling thread claims the lock on inQueue
-     */
-    TcpPacketData dequeue() {
-        TcpPacketData data;
-
-        synchronized (inQueue) {
-            data = inQueue.pop();
-            hasPackets.set(!inQueue.isEmpty());
-            inQueue.notifyAll();
-        }
-
-        return data;
     }
 
     @Override
     public void run() {
         System.out.println("TcpReader entering loop");
-        while (running.get() && !doRead())
-            ; // NO-OP
-
-        inQueue.notifyAll();
+        super.run();
         System.out.println("TcpReader leaving loop");
     }
 
-    private boolean doRead() {
+    @Override
+    TcpPacketData read() {
         try {
             InputStream stream = socket.getInputStream();
 
             // Read prefix
             // System.out.println("reading prefix");
             if (readBytes(stream, PREFIX_LENGTH)) {
-                return true;
+                terminate();
+                return null;
             }
             buffer.flip();
 
@@ -84,7 +61,8 @@ class TcpReader implements Runnable {
             // Read message
             // System.out.println("reading message");
             if (readBytes(stream, msgLength - buffer.position())) {
-                return true;
+                terminate();
+                return null;
             }
             buffer.flip();
 
@@ -93,18 +71,12 @@ class TcpReader implements Runnable {
 
             buffer.clear();
 
-
-            // System.out.println("queuing packet");
-            synchronized (inQueue) {
-                inQueue.addLast(new TcpPacketData(ETcpMessageType.fromOrdinal(msgType), data));
-                hasPackets.set(true);
-                inQueue.notifyAll();
-            }
+            return new TcpPacketData(ETcpMessageType.fromOrdinal(msgType), data);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -123,9 +95,5 @@ class TcpReader implements Runnable {
             buffer.put((byte) a);
         }
         return false;
-    }
-
-    boolean hasPackets() {
-        return hasPackets.get();
     }
 }

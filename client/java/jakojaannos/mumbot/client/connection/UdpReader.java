@@ -1,120 +1,66 @@
 package jakojaannos.mumbot.client.connection;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
+import jakojaannos.mumbot.client.util.crypto.OcbPmac;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
+import java.net.SocketTimeoutException;
 
 /**
  * Runnable task for reading voice packets over UDP. Reads and decrypts packets and adds them to FIFO queue which can
  * be queried thread-safe.
- *
+ * <p>
  * TODO: Move crypto somewhere else. Implement something like CryptState in the original mumble client to keep things clean
  */
-public class UdpReader implements Runnable {
+public class UdpReader extends SocketReaderBase<UdpMessage> {
+    private static final int AES_BLOCK_SIZE = 16;
     private final DatagramSocket socket;
-    private final Supplier<Boolean> running;
 
-    private final Deque<UdpMessage> queue;
-    private final AtomicBoolean hasPackets;
-
-    private final Cipher cipher;
     private final byte[] buffer = new byte[1024];
 
-    /**
-     * Performs thread-safe check if the reader has queued packets ready for handling.
-     *
-     * @return true if there are packets in the queue
-     */
-    public boolean hasPackets() {
-        return hasPackets.get();
-    }
+    private final OcbPmac cipher;
+    private byte[] nonce;
 
-    /**
-     * Pops the first element from the queue. Method is thread-safe.
-     *
-     * @return topmost element of the queue.
-     */
-    public UdpMessage dequeue() {
-        UdpMessage msg;
-        synchronized (queue) {
-            msg = queue.pop();
-        }
+    UdpReader(DatagramSocket socket, Connection connection) {
+        super(connection);
 
-        return msg;
-    }
-
-    UdpReader(DatagramSocket socket, Supplier<Boolean> running) {
         this.socket = socket;
-        this.running = running;
 
-        this.queue = new ArrayDeque<>();
-        this.hasPackets = new AtomicBoolean(false);
-
-        this.cipher = createCipher();
-        // TODO: Handle null-cipher
-
-    }
-
-    private static Cipher createCipher() {
-        Cipher cipher;
-        try {
-            cipher = Cipher.getInstance("AES/OCB/NoPadding", "BC");
-        } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException ignored) {
-            cipher = null;
-        }
-
-        return cipher;
+        this.cipher = new OcbPmac();
     }
 
     void initCipher(byte[] key, byte[] nonce) {
-        try {
-            this.cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new IvParameterSpec(nonce));
-        } catch (InvalidKeyException | InvalidAlgorithmParameterException ignored) {
-            System.out.println("Initializing cipher failed!");
-        }
+        this.nonce = nonce;
+        cipher.init(key, 128);
     }
 
     @Override
     public void run() {
-        while (running.get() && !doRead()) ;
+        System.out.println("UdpReader entering loop");
+        super.run();
+        System.out.println("UdpReader leaving loop");
     }
 
-    private boolean doRead() {
+    @Override
+    UdpMessage read() {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
         try {
             socket.receive(packet);
+        } catch (SocketTimeoutException e){
+            terminate();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         byte[] data = new byte[packet.getLength() - 4];
-        decrypt(buffer, packet.getLength(), data);
-
-        byte header = data[0];
-
-        byte[] payload = new byte[data.length - 1];
-        System.arraycopy(data, 1, payload, 0, payload.length);
-
-        synchronized (queue) {
-            queue.addLast(new UdpMessage(header, payload));
+        if (!decrypt(buffer, packet.getLength(), data)) {
+            // TODO: Record time of good/bad packets and request crypt resync when decrypting packets has failed for long enough
+            return null;
         }
 
-        return false;
+        return new UdpMessage(data);
     }
 
     private boolean decrypt(byte[] source, int dataLen, byte[] dest) {
@@ -123,15 +69,34 @@ public class UdpReader implements Runnable {
 
         int plainLength = dataLen - 4;
 
-        byte[] plain;
-        try {
-            // TODO: do magic tricks with associated data
-            plain = cipher.doFinal(source, 4, plainLength);
-        } catch (IllegalBlockSizeException | BadPaddingException ignored) {
-            return false;
+        byte ivbyte = source[0];
+
+        if (true || ((nonce[0] + 1) & 0xFF) == ivbyte) {
+            // In order as expected.
+            if (ivbyte > nonce[0]) {
+                nonce[0] = ivbyte;
+            } else if (ivbyte < nonce[0]) {
+                nonce[0] = ivbyte;
+                for (int i = 1; i < AES_BLOCK_SIZE; i++)
+                    if (++nonce[i] != 0)
+                        break;
+            } else {
+                return false;
+            }
+        } else {
+            // TODO: do magic tricks with associated data (fix nonce etc)
         }
 
+        if (plainLength == 0) {
+            return true;
+        }
+
+        byte[] plain = cipher.decrypt(source, 4, plainLength, this.nonce, 0, source, 1);
+        if (plain.length != plainLength)
+            throw new IllegalStateException("Plaintext length mismatch");
+
         System.arraycopy(plain, 0, dest, 0, plainLength);
+
         return true;
     }
 }

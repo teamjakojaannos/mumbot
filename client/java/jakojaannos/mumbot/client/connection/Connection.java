@@ -42,7 +42,7 @@ public class Connection implements IConnection {
      *
      * @return true if socket is open and connected, false otherwise
      */
-    private boolean isConnected() {
+    public boolean isConnected() {
         return tcpSocket.isConnected() && !tcpSocket.isClosed();
     }
 
@@ -72,16 +72,20 @@ public class Connection implements IConnection {
         this.tcpHandler = tcpHandler;
         this.udpHandler = udpHandler;
 
-        this.tcpReader = new TcpReader(tcpSocket, this::isConnected);
-        this.tcpWriter = new TcpWriter(tcpSocket, this::isConnected);
-        this.keepalive = new TcpKeepalive(this, 15000L, this::isConnected);
+        this.tcpReader = new TcpReader(tcpSocket, this);
+        this.tcpWriter = new TcpWriter(tcpSocket, this);
+        this.keepalive = new TcpKeepalive(this, 15000L);
 
-        this.udpReader = new UdpReader(udpSocket, this::isConnected);
-        this.udpWriter = new UdpWriter(udpSocket, new InetSocketAddress(hostname, port), this::isConnected);
+        this.udpReader = new UdpReader(udpSocket, this);
+        this.udpWriter = new UdpWriter(udpSocket, new InetSocketAddress(hostname, port), this);
 
-        new Thread(tcpReader).start();
-        new Thread(tcpWriter).start();
-        new Thread(keepalive).start();
+        new Thread(tcpReader, "TCP Reader").start();
+        new Thread(tcpWriter, "TCP Writer").start();
+        new Thread(keepalive, "TCP Ping").start();
+
+        new Thread(udpReader, "UDP Reader").start();
+        new Thread(udpWriter, "UDP Writer").start();
+
         new Thread(this::loop).start();
     }
 
@@ -98,7 +102,7 @@ public class Connection implements IConnection {
             while (tcpReader.hasPackets()) {
                 // System.out.println("Iterating inQueue");
 
-                TcpPacketData data = tcpReader.dequeue();
+                TcpPacketData data = tcpReader.pop();
                 ETcpMessageType type = ETcpMessageType.fromOrdinal(data.getType());
 
                 try {
@@ -109,8 +113,10 @@ public class Connection implements IConnection {
             }
 
             while (udpReader.hasPackets()) {
-                UdpMessage message = udpReader.dequeue();
+                UdpMessage message = udpReader.pop();
                 EUdpMessageType type = EUdpMessageType.fromOrdinal(message.getType());
+
+                // TODO: Handle UDP messages
             }
 
             try {
@@ -126,5 +132,6 @@ public class Connection implements IConnection {
 
     public void close() throws IOException {
         tcpSocket.close();
+        udpSocket.close();
     }
 }

@@ -2,15 +2,11 @@ package jakojaannos.mumbot.client.connection;
 
 import MumbleProto.Mumble;
 
-import java.util.function.Supplier;
-
 /**
  * Runnable task for sending ping/keepalive messages at set interval to the server.
  */
 class TcpKeepalive implements Runnable {
     private final Connection connection;
-    private final Supplier<Boolean> running;
-
     private long pingInterval;
 
     /**
@@ -32,16 +28,15 @@ class TcpKeepalive implements Runnable {
     }
 
 
-    TcpKeepalive(Connection connection, long pingInterval, Supplier<Boolean> running) {
+    TcpKeepalive(Connection connection, long pingInterval) {
         this.connection = connection;
-        this.running = running;
 
         this.pingInterval = pingInterval;
     }
 
     @Override
     public void run() {
-        while (running.get()) {
+        while (connection.isConnected()) {
             sendPing();
             doWait();
         }

@@ -55,11 +55,12 @@ class SocketUtil {
         }
     }
 
-    public static DatagramSocket openUdpDatagramSocket() {
+    static DatagramSocket openUdpDatagramSocket() {
         DatagramSocket socket;
         try {
             socket = new DatagramSocket();
             socket.setReceiveBufferSize(1024);
+            //socket.setSoTimeout(5000);
         } catch (SocketException e) {
             System.err.println("Error opening datagram socket:");
             e.printStackTrace();

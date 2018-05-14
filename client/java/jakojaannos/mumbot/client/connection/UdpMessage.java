@@ -5,32 +5,41 @@ public class UdpMessage {
      * Gets the raw header byte
      */
     public byte getHeader() {
-        return header;
+        return data[0];
     }
 
     /**
      * Gets the type (last 3 bits of the 8-bit header) from the header
      */
     public byte getType() {
-        return (byte) (header >> 5);
+        return (byte) (getHeader() >> 5);
     }
 
     /**
      * Gets the target (first 5 bits of the 8-bit header) from the header
      */
     public byte getTarget() {
-        return (byte) (header & 0x1F);
+        return (byte) (getHeader() & 0x1F);
     }
 
-    public byte[] getPayload() {
-        return payload;
+    public int payloadSize() {
+        return data.length - 1;
     }
 
-    private final byte header;
-    private final byte[] payload;
+    public void copyPayload(byte[] target) {
+        if (target.length != payloadSize())
+            throw new IllegalArgumentException("target.length must be equal to payload size!");
 
-    public UdpMessage(byte header, byte[] payload) {
-        this.header = header;
-        this.payload = payload;
+        System.arraycopy(data, 1, target, 0, target.length);
+    }
+
+    public byte[] getData() {
+        return data;
+    }
+
+    private final byte[] data;
+
+    public UdpMessage(byte[] data) {
+        this.data = data;
     }
 }

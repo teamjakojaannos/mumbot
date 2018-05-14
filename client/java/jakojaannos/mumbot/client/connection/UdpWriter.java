@@ -5,23 +5,26 @@ import jakojaannos.mumbot.client.util.crypto.OcbPmac;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class UdpWriter extends SocketWriterBase<UdpMessage> {
     private static final int AES_BLOCK_SIZE = 16;
 
     private final DatagramSocket socket;
-    private final InetSocketAddress address;
+    private final InetAddress address;
+    private final int port;
 
     private final OcbPmac cipher;
     private byte[] nonce;
 
 
-    UdpWriter(DatagramSocket socket, InetSocketAddress inetSocketAddress, Connection connection) {
+    UdpWriter(DatagramSocket socket, InetAddress address, int port, Connection connection) {
         super(connection);
 
         this.socket = socket;
-        this.address = inetSocketAddress;
+        this.address = address;
+        this.port = port;
 
         this.cipher = new OcbPmac();
     }
@@ -53,9 +56,24 @@ public class UdpWriter extends SocketWriterBase<UdpMessage> {
         byte[] ciphertext = cipher.encrypt(plain, 0, plain.length, nonce, 0, buf, 1);
         System.arraycopy(ciphertext, 0, buf, 4, ciphertext.length);
 
-        DatagramPacket packet = new DatagramPacket(buf, 0, buf.length, address);
+        DatagramPacket packet = new DatagramPacket(buf, 0, buf.length, address, port);
 
         try {
+            System.out.println("Plain:");
+            for (byte b : plain)
+                System.out.printf("%d ", b);
+
+            System.out.println("\n\nCiphertext:");
+            for (byte b : ciphertext)
+                System.out.printf("%d ", b);
+
+            System.out.println("\n\nPacket:");
+            for (byte b : buf)
+                System.out.printf("%d ", b);
+            System.out.println();
+
+
+            System.out.println("Sending UDP packet with length=" + packet.getLength());
             socket.send(packet);
         } catch (IOException e) {
             System.err.println("Error writing UDP message:");

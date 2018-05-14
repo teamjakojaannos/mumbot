@@ -6,7 +6,7 @@ import jakojaannos.mumbot.client.MumbleClient;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.net.Socket;
 
 /**
@@ -35,8 +35,8 @@ public class Connection implements IConnection {
      * Initializes UDP channel crypto with given keys and IVs
      */
     public void setupUdpCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
-        udpReader.initCipher(key, serverNonce);
-        udpWriter.initCipher(key, clientNonce);
+        udpReader.initCipher(key, clientNonce);
+        udpWriter.initCipher(key, serverNonce);
 
         cryptValid = true;
     }
@@ -81,7 +81,7 @@ public class Connection implements IConnection {
         this.keepalive = new TcpKeepalive(this, 15000L);
 
         this.udpReader = new UdpReader(udpSocket, this);
-        this.udpWriter = new UdpWriter(udpSocket, new InetSocketAddress(hostname, port), this);
+        this.udpWriter = new UdpWriter(udpSocket, InetAddress.getByName(hostname), port, this);
 
         new Thread(tcpReader, "TCP Reader").start();
         new Thread(tcpWriter, "TCP Writer").start();

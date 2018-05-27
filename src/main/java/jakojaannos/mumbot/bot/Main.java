@@ -18,23 +18,13 @@ public class Main {
         }
 
         try {
-            client.changeChannel("Ohjelmointicorner");
+            client.changeChannel("Syötä petoa");
             Thread.sleep(500);
-            client.sendMessage("Hello programmers!");
 
+            client.sendMessage("Haistakee kakke");
+            Thread.sleep(100);
+            //client.disconnect();
 
-            Thread.sleep(500);
-            System.out.println("Trying to move to restricted channel.");
-            client.changeChannel("Lassin tirkistelycorner");
-            Thread.sleep(500);
-            client.sendMessage("Hello again programmers!");
-
-            Thread.sleep(500);
-            System.out.println("Trying to move to nonexistent channel.");
-            Thread.sleep(500);
-            client.changeChannel("A non-existing channel");
-            Thread.sleep(500);
-            client.sendMessage("Still programming?!");
 
         } catch (InterruptedException e) {
         }

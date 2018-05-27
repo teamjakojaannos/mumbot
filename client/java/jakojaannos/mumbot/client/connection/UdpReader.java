@@ -46,19 +46,39 @@ public class UdpReader extends SocketReaderBase<UdpMessage> {
     UdpMessage read() {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
+        System.out.println("Receiving UDP datagram");
         try {
             socket.receive(packet);
-        } catch (SocketTimeoutException e){
-            terminate();
         } catch (IOException e) {
             e.printStackTrace();
+            terminate();
         }
 
+        System.out.println("Decrypting...");
         byte[] data = new byte[packet.getLength() - 4];
         if (!decrypt(buffer, packet.getLength(), data)) {
             // TODO: Record time of good/bad packets and request crypt resync when decrypting packets has failed for long enough
+            System.out.println("Decrypting failed.");
             return null;
         }
+
+        System.out.println("Decryption successful!");
+
+        return new UdpMessage(data);
+    }
+
+    public UdpMessage read(DatagramPacket packet) {
+        System.out.println("Receiving UDP datagram");
+
+        System.out.println("Decrypting...");
+        byte[] data = new byte[packet.getLength() - 4];
+        if (!decrypt(packet.getData(), packet.getLength(), data)) {
+            // TODO: Record time of good/bad packets and request crypt resync when decrypting packets has failed for long enough
+            System.out.println("Decrypting failed.");
+            return null;
+        }
+
+        System.out.println("Decryption successful!");
 
         return new UdpMessage(data);
     }
@@ -92,6 +112,9 @@ public class UdpReader extends SocketReaderBase<UdpMessage> {
         }
 
         byte[] plain = cipher.decrypt(source, 4, plainLength, this.nonce, 0, source, 1);
+        if (plain == null)
+            System.err.println("Message validation failed");
+
         if (plain.length != plainLength)
             throw new IllegalStateException("Plaintext length mismatch");
 

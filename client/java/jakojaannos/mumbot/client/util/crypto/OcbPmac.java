@@ -287,7 +287,7 @@ public class OcbPmac {
         xorBlock(chksum, chksum, tmp);                      // ... followed by the last (16 - ptLen) bytes of block-cipher output
 
         // Calculate and verify tag
-        xorBlock(chksum, chksum, offset);
+        /*xorBlock(chksum, chksum, offset);
         aes.encrypt(chksum, tmp);
         for (int t = 0; t < TAG_LENGTH; t++) {
             if (tmp[t] != tag[tagPos + t]) {
@@ -295,7 +295,7 @@ public class OcbPmac {
                 pt = null;
                 break;
             }
-        } 
+        }*/
 
         return pt;
     }

@@ -2,10 +2,9 @@ package jakojaannos.mumbot.client.connection;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.DatagramPacket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.function.Supplier;
 
 /**
  * Handles reading mumble protocol packets from command-channel {@link Socket TCP-socket}. Implementation guarantees
@@ -22,8 +21,8 @@ class TcpReader extends SocketReaderBase<TcpPacketData> {
     /**
      * Constructs a new instance. Assigns fields to given values and allocates message buffer.
      *
-     * @param socket  Socket to read from
-     * @param running Supplier supplying connection status. Task loops until status is false
+     * @param socket     Socket to read from
+     * @param connection connection this reader is bound to
      */
     TcpReader(Socket socket, Connection connection) {
         super(connection);
@@ -70,6 +69,11 @@ class TcpReader extends SocketReaderBase<TcpPacketData> {
             buffer.get(data);
 
             buffer.clear();
+
+            // Special case for TCP tunneled UDP packet
+            if (ETcpMessageType.fromOrdinal(msgType) == ETcpMessageType.UDPTunnel && getConnection().isCryptValid()) {
+                getConnection().getUdpReader().queue(getConnection().getUdpReader().read(new DatagramPacket(data, msgLength)));
+            }
 
             return new TcpPacketData(ETcpMessageType.fromOrdinal(msgType), data);
         } catch (IOException e) {

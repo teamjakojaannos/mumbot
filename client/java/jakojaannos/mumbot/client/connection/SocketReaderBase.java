@@ -12,6 +12,10 @@ abstract class SocketReaderBase<TMessage> implements Runnable {
 
     private boolean terminate;
 
+    Connection getConnection() {
+        return connection;
+    }
+
     void terminate() {
         terminate = true;
         if (connection.isConnected()) {
@@ -61,11 +65,18 @@ abstract class SocketReaderBase<TMessage> implements Runnable {
             if (packet == null)
                 continue;
 
-            // System.out.println("queuing packet");
-            synchronized (inQueue) {
-                inQueue.add(packet);
-                hasPackets.set(true);
-            }
+            queue(packet);
+        }
+    }
+
+    public void queue(TMessage packet) {
+        if (packet == null) {
+            return;
+        }
+        // System.out.println("queuing packet");
+        synchronized (inQueue) {
+            inQueue.add(packet);
+            hasPackets.set(true);
         }
     }
 

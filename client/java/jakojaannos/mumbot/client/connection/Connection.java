@@ -143,4 +143,12 @@ public class Connection implements IConnection {
         tcpSocket.close();
         udpSocket.close();
     }
+
+    UdpReader getUdpReader() {
+        return udpReader;
+    }
+
+    boolean isCryptValid() {
+        return this.cryptValid;
+    }
 }

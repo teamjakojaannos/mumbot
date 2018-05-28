@@ -12,7 +12,7 @@ public class UdpMessage {
      * Gets the type (last 3 bits of the 8-bit header) from the header
      */
     public byte getType() {
-        return (byte) (getHeader() >> 5);
+        return (byte) ((getHeader() >> 5) & 0x7);
     }
 
     /**

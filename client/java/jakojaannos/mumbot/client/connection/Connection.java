@@ -29,6 +29,7 @@ public class Connection implements IConnection {
     private final MumbleClient client;
 
     private boolean cryptValid;
+    private boolean cryptSetup;
 
 
     /**
@@ -37,8 +38,7 @@ public class Connection implements IConnection {
     public void setupUdpCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
         udpReader.initCipher(key, clientNonce);
         udpWriter.initCipher(key, serverNonce);
-
-        cryptValid = true;
+        cryptSetup = true;
     }
 
     /**
@@ -52,7 +52,7 @@ public class Connection implements IConnection {
 
     public Connection(MumbleClient client, TcpMessageHandler tcpHandler, UdpMessageHandler udpHandler, String hostname, int port) throws IOException {
         this.tcpSocket = SocketUtil.openTcpSslSocket(hostname, port);
-        this.udpSocket = SocketUtil.openUdpDatagramSocket();
+        this.udpSocket = SocketUtil.openUdpDatagramSocket(hostname, port);
         if (this.tcpSocket == null || this.udpSocket == null) {
             this.tcpReader = null;
             this.tcpWriter = null;
@@ -123,7 +123,7 @@ public class Connection implements IConnection {
                 }
             }
 
-            while (udpReader.hasPackets() && cryptValid) {
+            while (udpReader.hasPackets() && cryptSetup) {
                 UdpMessage message = udpReader.pop();
                 udpHandler.handle(message);
             }
@@ -150,5 +150,9 @@ public class Connection implements IConnection {
 
     boolean isCryptValid() {
         return this.cryptValid;
+    }
+
+    public void setCryptValid(boolean cryptValid) {
+        this.cryptValid = cryptValid;
     }
 }

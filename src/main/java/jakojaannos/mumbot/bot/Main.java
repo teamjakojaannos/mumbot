@@ -5,7 +5,8 @@ import jakojaannos.mumbot.client.MumbleClient;
 public class Main {
     public static void main(String[] args) {
         MumbleClient client = new MumbleClient();
-        client.connect("saltandrng.net", 64738);
+        //client.connect("saltandrng.net", 64738);
+        client.connect("localhost", 64738);
 
         MessageParser parser = new MessageParser(client);
         client.registerChatListener(parser);
@@ -18,7 +19,7 @@ public class Main {
         }
 
         try {
-            client.changeChannel("Syötä petoa");
+            //client.changeChannel("Syötä petoa");
             Thread.sleep(500);
 
             client.sendMessage("Haistakee kakke");

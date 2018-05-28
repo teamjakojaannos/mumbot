@@ -43,6 +43,12 @@ public class UdpWriter extends SocketWriterBase<UdpMessage> {
 
     @Override
     void write(UdpMessage message) {
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         for (int i = 0; i < AES_BLOCK_SIZE; i++)
             if (++nonce[i] != 0)
                 break;
@@ -51,9 +57,9 @@ public class UdpWriter extends SocketWriterBase<UdpMessage> {
 
         // TODO: Recycle buffers
         byte[] buf = new byte[plain.length + 4];
-        buf[0] = nonce[0];
 
         byte[] ciphertext = cipher.encrypt(plain, 0, plain.length, nonce, 0, buf, 1);
+        buf[0] = nonce[0];
         System.arraycopy(ciphertext, 0, buf, 4, ciphertext.length);
 
         DatagramPacket packet = new DatagramPacket(buf, 0, buf.length, address, port);

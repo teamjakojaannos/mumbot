@@ -4,10 +4,7 @@ package jakojaannos.mumbot.client.connection;
 
 import javax.net.ssl.*;
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
+import java.net.*;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -55,14 +52,18 @@ class SocketUtil {
         }
     }
 
-    static DatagramSocket openUdpDatagramSocket() {
+    static DatagramSocket openUdpDatagramSocket(String host, int port) {
         DatagramSocket socket;
         try {
             socket = new DatagramSocket();
             socket.setReceiveBufferSize(1024);
             //socket.setSoTimeout(5000);
+            socket.connect(InetAddress.getByName(host), port);
         } catch (SocketException e) {
             System.err.println("Error opening datagram socket:");
+            e.printStackTrace();
+            socket = null;
+        } catch (UnknownHostException e) {
             e.printStackTrace();
             socket = null;
         }

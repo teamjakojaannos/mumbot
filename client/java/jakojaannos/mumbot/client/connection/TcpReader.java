@@ -71,8 +71,8 @@ class TcpReader extends SocketReaderBase<TcpPacketData> {
             buffer.clear();
 
             // Special case for TCP tunneled UDP packet
-            if (ETcpMessageType.fromOrdinal(msgType) == ETcpMessageType.UDPTunnel && getConnection().isCryptValid()) {
-                getConnection().getUdpReader().queue(getConnection().getUdpReader().read(new DatagramPacket(data, msgLength)));
+            if (ETcpMessageType.fromOrdinal(msgType) == ETcpMessageType.UDPTunnel) {
+                getConnection().getUdpReader().queue(new UdpMessage(data));
             }
 
             return new TcpPacketData(ETcpMessageType.fromOrdinal(msgType), data);

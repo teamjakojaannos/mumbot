@@ -1,6 +1,7 @@
 package jakojaannos.mumbot.client;
 
 import MumbleProto.Mumble;
+import com.google.protobuf.ByteString;
 import jakojaannos.mumbot.client.channels.Channel;
 import jakojaannos.mumbot.client.channels.ChannelManager;
 import jakojaannos.mumbot.client.connection.Connection;
@@ -10,10 +11,8 @@ import jakojaannos.mumbot.client.connection.UdpMessageHandler;
 import jakojaannos.mumbot.client.connection.messages.*;
 import jakojaannos.mumbot.client.users.UserInfo;
 import jakojaannos.mumbot.client.users.UserManager;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.IOException;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,7 +26,7 @@ public class MumbleClient implements IMumbleClient {
     private final List<IChatListener> chatListeners = new ArrayList<>();
 
     private final TcpMessageHandler tcpMessageHandler = new TcpMessageHandler();
-    private final UdpMessageHandler udpMessageHandler = new UdpMessageHandler();
+    private final UdpMessageHandler udpMessageHandler;
 
     private AtomicBoolean connected;
     private Connection connection;
@@ -62,13 +61,8 @@ public class MumbleClient implements IMumbleClient {
         this.session = -1;
         this.connected = new AtomicBoolean(false);
 
-        if (Security.addProvider(new BouncyCastleProvider()) != -1) {
-            System.out.println("Successfully installed BC provider");
-        } else {
-            System.out.println("BC provider already exists. This is not an error.");
-        }
-
         registerTcpMessageHandlers();
+        this.udpMessageHandler = new UdpMessageHandler(this);
     }
 
     @Override
@@ -130,6 +124,11 @@ public class MumbleClient implements IMumbleClient {
 
     @Override
     public void sendMessage(Channel channel, String message) {
+        if (channel == null) {
+            // TODO: Change this to an exception and make bot initially join root channel
+            System.out.println("Channel cannot be null!");
+            return;
+        }
         System.out.printf("Sending message to channel: '%s', id = %d\n", channel.getName(), channel.getId());
         Mumble.TextMessage msg = Mumble.TextMessage.newBuilder()
                 .setMessage(message)
@@ -169,6 +168,9 @@ public class MumbleClient implements IMumbleClient {
 
         tcpMessageHandler.register(ETcpMessageType.TextMessage, new HandlerTextMessage(), Mumble.TextMessage::parseFrom, Mumble.TextMessage::toByteArray);
 
+        // Just skip UDPTunnel messages, they are not used
+        tcpMessageHandler.register(ETcpMessageType.UDPTunnel, (client, o) -> {}, data -> Mumble.UDPTunnel.newBuilder().setPacket(ByteString.EMPTY).build(), Mumble.UDPTunnel::toByteArray);
+
 
         // TODO: Properly handle these messages (stubs are here to prevent exceptions due to missing handlers)
         tcpMessageHandler.register(ETcpMessageType.Ping, (client, o) -> {}, Mumble.Ping::parseFrom, Mumble.Ping::toByteArray);
@@ -183,5 +185,9 @@ public class MumbleClient implements IMumbleClient {
 
     public void setupCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
         connection.setupUdpCrypt(key, clientNonce, serverNonce);
+    }
+
+    public void setCryptValid(boolean isValid) {
+        connection.setCryptValid(isValid);
     }
 }

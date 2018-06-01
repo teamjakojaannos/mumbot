@@ -101,6 +101,6 @@ public abstract class ChannelBase<TPacket> implements IChannel<TPacket> {
                 LOGGER.warn(Markers.CONNECTION, "Channel \"{}\" Read-thread interrupted while queuing packet to readQueue: {}", name, e.toString());
             }
         }
-        LOGGER.trace(Markers.CONNECTION, "Channel \"{0}\" exiting read loop", name);
+        LOGGER.trace(Markers.CONNECTION, "Channel \"{}\" exiting read loop", name);
     }
 }

@@ -130,7 +130,7 @@ class TcpMessageHandler {
     static class TextMessage implements ITcpMessageHandler<Mumble.TextMessage> {
         @Override
         public void handle(MumbleClient client, Mumble.TextMessage textMessage) {
-            LOGGER.debug("Received a text message: \"{0}\"", textMessage.getMessage());
+            LOGGER.debug("Received a text message: \"{}\"", textMessage.getMessage());
             for (IChatListener listener : client.getChatListeners()) {
                 listener.receive(new UserInfo(), textMessage.getMessage());
             }

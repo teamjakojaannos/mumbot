@@ -19,7 +19,7 @@ public enum TcpMessageType {
     Version             (new TcpMessageHandler.Version(),           Mumble.Version::parseFrom),
     UDPTunnel           (new TcpMessageHandler.Ignore(),            data -> Mumble.UDPTunnel.getDefaultInstance(), true),
     Authenticate        (null,                                      Mumble.Authenticate::parseFrom),
-    Ping                (null,                                      Mumble.Ping::parseFrom, true),
+    Ping                (new TcpMessageHandler.Ping(),              Mumble.Ping::parseFrom, true),
     Reject              (null,                                      Mumble.Reject::parseFrom),
     ServerSync          (new TcpMessageHandler.ServerSync(),        Mumble.ServerSync::parseFrom),
     ChannelRemove       (null,                                      Mumble.ChannelRemove::parseFrom),
@@ -52,6 +52,10 @@ public enum TcpMessageType {
     private final ITcpMessageHandler<AbstractMessage> handler;
     private final IMessageSerializer<AbstractMessage> serializer;
     private final IMessageDeserializer<AbstractMessage> deserializer;
+
+    boolean shouldLog() {
+        return !reduceLogSpam;
+    }
 
     void handle(MumbleClient client, byte[] data) {
         if (handler == null) {

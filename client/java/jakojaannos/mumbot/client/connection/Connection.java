@@ -134,7 +134,9 @@ public class Connection implements IConnection {
 
                 TcpChannel.Packet packet = tcpChannel.popReceivedPacket();
                 if (packet == null) break;
-                LOGGER.trace(packet.getType() == TcpMessageType.UDPTunnel ? Markers.UDP_TUNNEL : Markers.TCP, "TCP Channel has unprocessed packets!");
+                if (packet.getType().shouldLog()) {
+                    LOGGER.trace(Markers.TCP, "TCP Channel has unprocessed packets!");
+                }
                 packet.getType().handle(client, packet.getData());
             }
 

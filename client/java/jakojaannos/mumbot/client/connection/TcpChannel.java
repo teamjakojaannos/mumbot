@@ -60,7 +60,9 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
             throw new IllegalStateException("Tried to write to TCP Channel with an invalid socket");
         }
 
-        LOGGER.trace(Markers.TCP, "TCP Channel writing packet");
+        if (packet.getType().shouldLog()) {
+            LOGGER.trace(Markers.TCP, "TCP Channel writing packet");
+        }
 
         ByteBuffer buffer = ByteBuffer.allocate(packet.length + HEADER_SIZE);
         buffer.putShort(packet.type);
@@ -102,11 +104,10 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
 
 
             // Read message
-            if (TcpMessageType.fromRaw(messageType) != TcpMessageType.UDPTunnel) {
+            if (TcpMessageType.fromRaw(messageType).shouldLog()) {
                 LOGGER.trace(Markers.TCP, "Reading TCP Packet");
-            } else {
-                LOGGER.trace(Markers.UDP_TUNNEL, "Reading UDP Tunnel Packet");
             }
+
             if (readBytes(stream, messageLength - buffer.position())) {
                 disconnect();
                 return null;
@@ -120,6 +121,7 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
 
             // Special case for TCP tunneled UDP packet
             if (TcpMessageType.fromRaw(messageType) == TcpMessageType.UDPTunnel) {
+                LOGGER.trace(Markers.UDP_TUNNEL, "Redirecting TCP Tunneled UDP Packet");
                 udpChannel.externalQueue(new UdpMessage(data));
             }
 

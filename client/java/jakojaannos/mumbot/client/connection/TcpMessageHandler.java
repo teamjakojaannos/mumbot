@@ -240,4 +240,11 @@ class TcpMessageHandler {
             }
         }
     }
+
+    static class Ping implements ITcpMessageHandler<Mumble.Ping> {
+        @Override
+        public void handle(MumbleClient client, Mumble.Ping message) {
+            // TODO: Handle pings
+        }
+    }
 }

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Executors;
@@ -113,9 +114,9 @@ public class Connection implements IConnection {
 
         send(TcpMessageType.Ping, ping);
 
-        // We can/need to send pings even if crypt hasn't been validated yet as validating the crypt involves receiving
+        // We can/must send pings even if crypt hasn't been validated yet as validating the crypt involves receiving
         // answer to our pings.
-        if (hasCrypt) {
+        if (hasCrypt && isCryptValid()) {
             byte[] data = new byte[2]; // Header + varint
             data[0] = 0x20; // Ping packet header 00100000
 
@@ -147,7 +148,32 @@ public class Connection implements IConnection {
 
                 UdpMessageType type = UdpMessageType.fromRaw(message.getType());
                 LOGGER.trace(Markers.UDP, "Processing UDP channel packet of type \"{}\"...", type);
+                switch (type) {
+                    case Ping:
+                        setCryptValid(true);
+                        break;
+                    case AudioOPUS:
+                        LOGGER.trace(Markers.AUDIO, "Received Opus audio frame!");
 
+                        UdpAudioPacket packet = new UdpAudioPacket();
+                        ByteBuffer buffer = ByteBuffer.wrap(message.getData());
+                        packet.deserialize(buffer);
+                        if (client.getOutputHandler() != null) {
+                            client.getOutputHandler().receiveFrame(packet);
+                        }
+                        break;
+                    case AudioCELT:
+                    case AudioSpeex:
+                    case AudioCELTBeta:
+                        LOGGER.error(Markers.UDP, "Received unsupported audio packet!");
+                        break;
+                    case Unused5:
+                    case Unused6:
+                    case Unused7:
+                    default:
+                        LOGGER.error(Markers.UDP, "Received unknown UDP packet type!");
+                        break;
+                }
             }
 
             try {

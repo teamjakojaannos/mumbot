@@ -206,7 +206,7 @@ class CryptState {
                 return false;
             }
         }
-        decryptHistory[decryptIv[0]] = decryptIv[1];
+        decryptHistory[decryptIv[0] & 0xFF] = decryptIv[1];
 
         if (restore) {
             System.arraycopy(saveiv, 0, decryptIv, 0, AES_BLOCK_SIZE);

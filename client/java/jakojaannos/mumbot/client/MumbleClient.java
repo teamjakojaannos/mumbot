@@ -41,6 +41,7 @@ public class MumbleClient implements IMumbleClient {
     private int session;
     private String serverPassword;
     private Set<String> tokens = new TreeSet<>();
+    private IAudioOutputHandler outputHandler;
 
     @Override
     public IConnection getConnection() {
@@ -225,5 +226,9 @@ public class MumbleClient implements IMumbleClient {
 
     public String getUsername() {
         return session == -1 ? username : getLocalUser().getName();
+    }
+
+    public IAudioOutputHandler getOutputHandler() {
+        return outputHandler;
     }
 }

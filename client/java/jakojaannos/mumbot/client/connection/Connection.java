@@ -36,10 +36,6 @@ public class Connection implements IConnection {
         return tcpChannel.isConnected() && udpChannel.isConnected();
     }
 
-    private boolean isCryptValid() {
-        return udpChannel.getCryptState().isValid() && cryptValid;
-    }
-
     public Connection(MumbleClient client) {
         SocketFactory factory;
         try {
@@ -150,7 +146,7 @@ public class Connection implements IConnection {
                 LOGGER.trace(Markers.UDP, "Processing UDP channel packet of type \"{}\"...", type);
                 switch (type) {
                     case Ping:
-                        setCryptValid(true);
+                        this.cryptValid = true;
                         break;
                     case AudioOPUS:
                         LOGGER.trace(Markers.AUDIO, "Received Opus audio frame!");
@@ -185,10 +181,6 @@ public class Connection implements IConnection {
         LOGGER.trace(Markers.CONNECTION, "Connection handler thread leaving loop!");
 
         disconnect();
-    }
-
-    void setCryptValid(boolean cryptValid) {
-        this.cryptValid = cryptValid;
     }
 
     byte[] getEncryptIv() {

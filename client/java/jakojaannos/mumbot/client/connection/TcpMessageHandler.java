@@ -58,6 +58,8 @@ class TcpMessageHandler {
         }
 
         private void handleSetup(MumbleClient client, Mumble.CryptSetup message) {
+            LOGGER.debug(Markers.CONNECTION, "Handling crypt initialization");
+
             ((Connection) client.getConnection()).updateUdpCrypto(
                     message.getKey().toByteArray(),
                     message.getClientNonce().toByteArray(),
@@ -71,10 +73,12 @@ class TcpMessageHandler {
             // --> just write 0 to the array and we have a valid varint encoded 0-timestamp
             data[1] = 0; // 0-timestamp
 
-            client.getConnection().send(new UdpMessage(data));
+            client.getConnection().sendUdp(new UdpMessage(data));
         }
 
         private void handleResync(MumbleClient client, Mumble.CryptSetup message) {
+            LOGGER.debug(Markers.CONNECTION, "Handling crypt resync");
+
             // Server answers our request
             if (message.hasServerNonce()) {
                 ((Connection) client.getConnection())
@@ -94,7 +98,7 @@ class TcpMessageHandler {
     static class ServerSync implements ITcpMessageHandler<Mumble.ServerSync> {
         @Override
         public void handle(MumbleClient client, Mumble.ServerSync sync) {
-            LOGGER.debug(Markers.CLIENT, "Connected to a server! Welcome message:\n{}", sync.getWelcomeText()); // TODO: Provide client access to the message
+            LOGGER.debug(Markers.CLIENT, "Connected to a server! Welcome message: {}", sync.getWelcomeText()); // TODO: Provide client access to the message
             LOGGER.debug(Markers.CONNECTION, "Our session id: {}", sync.getSession());
 
             client.onConnectReady(sync.getSession());

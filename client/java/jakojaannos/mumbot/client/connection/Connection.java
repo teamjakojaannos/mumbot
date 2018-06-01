@@ -129,15 +129,24 @@ public class Connection implements IConnection {
 
     private void handlerLoop(MumbleClient client) {
         LOGGER.trace(Markers.CONNECTION, "Connection handler thread entering loop!");
-        while (tcpChannel.isConnected()) {
+        main:
+        while (isConnected()) {
             while (tcpChannel.hasReceivedPackets()) {
 
                 TcpChannel.Packet packet = tcpChannel.popReceivedPacket();
-                if (packet == null) break;
+                if (packet == null) break main;
                 if (packet.getType().shouldLog()) {
-                    LOGGER.trace(Markers.TCP, "TCP Channel has unprocessed packets!");
+                    LOGGER.trace(Markers.TCP, "Processing TCP channel packet...");
                 }
                 packet.getType().handle(client, packet.getData());
+            }
+
+            while (udpChannel.hasReceivedPackets()) {
+                UdpMessage message = udpChannel.popReceivedPacket();
+                if (message == null) break main;
+
+                UdpMessageType type = UdpMessageType.fromRaw(message.getType());
+                LOGGER.trace(Markers.UDP, "Processing UDP channel packet of type \"{}\"...", type);
             }
 
             try {

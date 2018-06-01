@@ -63,18 +63,20 @@ public class UdpChannel extends ChannelBase<UdpMessage> {
     @Override
     void write(UdpMessage message) {
         if (socket == null || !isConnected()) {
+            LOGGER.error(Markers.UDP, "Tried to write to UDP with invalid socket!");
             throw new IllegalStateException("Tried to write to UDP with invalid socket");
         }
 
         if (!cryptState.isValid()) {
+            LOGGER.error(Markers.UDP, "Tried to write to UDP with invalid crypt state");
             throw new IllegalStateException("Tried to write to UDP with invalid crypt state");
         }
 
-        byte[] encrypted = new byte[message.getLength()];
+        byte[] encrypted = new byte[message.getLength() + 4];
         cryptState.encrypt(message.getData(), encrypted, message.getLength());
         DatagramPacket datagramPacket = new DatagramPacket(encrypted, encrypted.length);
-        packet.setAddress(address);
-        packet.setPort(port);
+        datagramPacket.setAddress(address);
+        datagramPacket.setPort(port);
 
         LOGGER.trace(Markers.UDP, "Sending datagram packet of type \"{}\"", UdpMessageType.fromRaw(message.getType()));
         try {

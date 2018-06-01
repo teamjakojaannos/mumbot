@@ -1,158 +1,145 @@
 package jakojaannos.mumbot.client.connection;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import MumbleProto.Mumble;
+import com.google.protobuf.AbstractMessage;
 import jakojaannos.mumbot.client.IConnection;
 import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.util.logging.Markers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.Socket;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Facilitates the connection with the mumble server. Wraps both the TCP and the UDP connections
- */
 public class Connection implements IConnection {
-    private final Socket tcpSocket;
-    private final DatagramSocket udpSocket;
+    private static final Logger LOGGER = LoggerFactory.getLogger(Connection.class.getSimpleName());
 
-    private final TcpReader tcpReader;
-    private final TcpWriter tcpWriter;
-    private final TcpKeepalive keepalive;
+    private static final long PING_INITIAL_DELAY = 0; // ms
+    private static final long PING_RATE = 5000; // ms
 
-    private final UdpReader udpReader;
-    private final UdpWriter udpWriter;
+    private final TcpChannel tcpChannel;
 
-    private final TcpMessageHandler tcpHandler;
-    private final UdpMessageHandler udpHandler;
-
-    private final MumbleClient client;
+    private final ScheduledExecutorService pingService;
+    private final Thread handler;
 
     private boolean cryptValid;
-    private boolean cryptSetup;
+    private boolean hasCrypt;
 
-
-    /**
-     * Initializes UDP channel crypto with given keys and IVs
-     */
-    public void setupUdpCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
-        udpReader.initCipher(key, clientNonce);
-        udpWriter.initCipher(key, serverNonce);
-        cryptSetup = true;
-    }
-
-    /**
-     * Checks if the socket is still connected
-     *
-     * @return true if socket is open and connected, false otherwise
-     */
+    @Override
     public boolean isConnected() {
-        return tcpSocket.isConnected() && !tcpSocket.isClosed();
+        return tcpChannel.isConnected();
     }
 
-    public Connection(MumbleClient client, TcpMessageHandler tcpHandler, UdpMessageHandler udpHandler, String hostname, int port) throws IOException {
-        this.tcpSocket = SocketUtil.openTcpSslSocket(hostname, port);
-        this.udpSocket = SocketUtil.openUdpDatagramSocket(hostname, port);
-        if (this.tcpSocket == null || this.udpSocket == null) {
-            this.tcpReader = null;
-            this.tcpWriter = null;
-            this.keepalive = null;
-            this.tcpHandler = null;
-
-            this.udpReader = null;
-            this.udpWriter = null;
-            this.udpHandler = null;
-
-            this.client = null;
-
-            if (tcpSocket != null) tcpSocket.close();
-            if (udpSocket != null) udpSocket.close();
-
-            System.err.println("Could not connect, opening sockets failed!");
-            return;
+    public Connection(MumbleClient client) {
+        SocketFactory factory;
+        try {
+            factory = new SocketFactory();
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new IllegalStateException("Could not initialize SocketFactory.");
         }
 
-        this.client = client;
-        this.tcpHandler = tcpHandler;
-        this.udpHandler = udpHandler;
+        tcpChannel = new TcpChannel(factory);
+        handler = new Thread(null, () -> handlerLoop(client), "Connection/Handler");
+        pingService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(null, r, "Connection/Ping"));
+    }
 
-        this.tcpReader = new TcpReader(tcpSocket, this);
-        this.tcpWriter = new TcpWriter(tcpSocket, this);
-        this.keepalive = new TcpKeepalive(this, 15000L);
+    @Override
+    public void connect(String hostname, int port) {
+        tcpChannel.connect(hostname, port);
+        handler.start();
+        pingService.scheduleAtFixedRate(this::sendPing, PING_INITIAL_DELAY, PING_RATE, TimeUnit.MILLISECONDS);
+    }
 
-        this.udpReader = new UdpReader(udpSocket, this);
-        this.udpWriter = new UdpWriter(udpSocket, InetAddress.getByName(hostname), port, this);
+    @Override
+    public void disconnect() {
+        tcpChannel.disconnect();
+        handler.interrupt();
+        pingService.shutdownNow();
+    }
 
-        new Thread(tcpReader, "TCP Reader").start();
-        new Thread(tcpWriter, "TCP Writer").start();
-        new Thread(keepalive, "TCP Ping").start();
+    @Override
+    public void send(TcpMessageType messageType, AbstractMessage message) {
+        byte[] data = messageType.serialize(message);
+        TcpChannel.Packet packet = new TcpChannel.Packet((short) messageType.ordinal(), data.length, data);
+        tcpChannel.send(packet);
+    }
 
-        new Thread(udpReader, "UDP Reader").start();
-        new Thread(udpWriter, "UDP Writer").start();
-
-        new Thread(this::loop).start();
+    @Override
+    public void send(UdpMessage message) {
+        if (hasCrypt && !cryptValid) {
+            tcpChannel.send(new TcpChannel.Packet((short) TcpMessageType.UDPTunnel.ordinal(), message.getLength(), message.getData()));
+        } else {
+            sendUdp(message);
+        }
     }
 
     /**
-     * Queues a command channel message for sending
+     * Forces sending over UDP. Normally audio packets won't be sent over UDP until server has validated that the
+     * UDP channel is working by answering to our ping packets. This method overrides that requirement and sends the
+     * packet anyways.
      */
-    public void sendTcp(ETcpMessageType type, Object message) {
-        tcpWriter.queue(new TcpPacketData(type, tcpHandler.toByteArray(type, message)));
-    }
-
-    /**
-     * Queues voice channel message for sending
-     */
+    @Override
     public void sendUdp(UdpMessage message) {
-        udpWriter.queue(message);
+
     }
 
+    public void updateUdpCrypto(byte[] key, byte[] clientNonce, byte[] serverNonce) {
+        hasCrypt = true;
+    }
 
-    private void loop() {
-        while (isConnected()) {
-            while (tcpReader.hasPackets()) {
-                // System.out.println("Iterating inQueue");
+    private void sendPing() {
+        Mumble.Ping ping = Mumble.Ping.newBuilder()
+                .setTimestamp(0L) // TODO: set proper timestamp
+                .build();
 
-                TcpPacketData data = tcpReader.pop();
-                ETcpMessageType type = ETcpMessageType.fromOrdinal(data.getType());
+        send(TcpMessageType.Ping, ping);
 
-                try {
-                    tcpHandler.handle(client, type, data.getData());
-                } catch (InvalidProtocolBufferException e) {
-                    e.printStackTrace();
+        // We can/need to send pings even if crypt hasn't been validated yet as validating the crypt involves receiving
+        // answer to our pings.
+        if (hasCrypt) {
+            byte[] data = new byte[2]; // Header + varint
+            data[0] = 0x20; // Ping packet header 00100000
+
+            // 0-prefixed varints are treated 7-bit unsigned integers (whole varint fits a single byte)
+            // --> just write 0 to the array and we have a valid varint encoded 0-timestamp
+            data[1] = 0; // 0-timestamp
+
+            sendUdp(new UdpMessage(data));
+        }
+    }
+
+    private void handlerLoop(MumbleClient client) {
+        LOGGER.trace(Markers.CONNECTION, "Connection handler thread entering loop!");
+        while (tcpChannel.isConnected()) {
+            while (tcpChannel.hasReceivedPackets()) {
+                LOGGER.trace(Markers.TCP, "TCP Channel has unprocessed packets!");
+
+                TcpChannel.Packet packet = tcpChannel.popReceivedPacket();
+                if (packet == null) break;
+
+                packet.getType().handle(client, packet.getData());
+                if (packet.getType() == TcpMessageType.ServerSync) {
+                    synchronized (this) {
+                        this.notify();
+                    }
                 }
             }
 
-            while (udpReader.hasPackets() && cryptSetup) {
-                UdpMessage message = udpReader.pop();
-                udpHandler.handle(message);
-            }
-
             try {
-                Thread.sleep(1L);
+                Thread.sleep(1);
             } catch (InterruptedException ignored) {
             }
         }
 
-        synchronized (keepalive) {
-            keepalive.notifyAll();
-        }
+        LOGGER.trace(Markers.CONNECTION, "Connection handler thread leaving loop!");
+
+        disconnect();
     }
 
-    public void close() throws IOException {
-        tcpSocket.close();
-        udpSocket.close();
-    }
-
-    UdpReader getUdpReader() {
-        return udpReader;
-    }
-
-    boolean isCryptValid() {
-        return this.cryptValid;
-    }
-
-    public void setCryptValid(boolean cryptValid) {
+    void setCryptValid(boolean cryptValid) {
         this.cryptValid = cryptValid;
     }
 }

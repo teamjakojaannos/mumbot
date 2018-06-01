@@ -1,12 +1,12 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 public class CommandPlay extends Command {
 
 
-    public CommandPlay(MumbleClient client){
+    public CommandPlay(IMumbleClient client) {
         super(client);
         aliases.add("play");
     }

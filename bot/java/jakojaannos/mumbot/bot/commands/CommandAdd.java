@@ -1,11 +1,11 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 public class CommandAdd extends Command {
 
-    public CommandAdd(MumbleClient client){
+    public CommandAdd(IMumbleClient client) {
         super(client);
         aliases.add("add");
     }

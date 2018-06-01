@@ -1,12 +1,12 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 public class CommandPause extends Command {
 
 
-    public CommandPause(MumbleClient client){
+    public CommandPause(IMumbleClient client) {
         super(client);
         aliases.add("pause");
     }

@@ -1,44 +1,46 @@
 package jakojaannos.mumbot.client;
 
 import MumbleProto.Mumble;
-import com.google.protobuf.ByteString;
 import jakojaannos.mumbot.client.channels.Channel;
 import jakojaannos.mumbot.client.channels.ChannelManager;
 import jakojaannos.mumbot.client.connection.Connection;
-import jakojaannos.mumbot.client.connection.ETcpMessageType;
-import jakojaannos.mumbot.client.connection.TcpMessageHandler;
-import jakojaannos.mumbot.client.connection.UdpMessageHandler;
-import jakojaannos.mumbot.client.connection.messages.*;
+import jakojaannos.mumbot.client.connection.TcpMessageType;
 import jakojaannos.mumbot.client.users.UserInfo;
 import jakojaannos.mumbot.client.users.UserManager;
+import jakojaannos.mumbot.client.util.logging.Markers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * see {@link IMumbleClient}
  */
 public class MumbleClient implements IMumbleClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MumbleClient.class.getSimpleName());
+
+    private static final String VERSION_PREFIX = "mumbot";
+    private static final String VERSION_RELEASE = "ALPHA";
+    private static final short VERSION_MAJOR = 0;
+    private static final byte VERSION_MINOR = 1;
+    private static final byte VERSION_PATCH = 0;
+
     private final ChannelManager channels = new ChannelManager();
     private final UserManager users = new UserManager();
     private final List<IChatListener> chatListeners = new ArrayList<>();
 
-    private final TcpMessageHandler tcpMessageHandler = new TcpMessageHandler();
-    private final UdpMessageHandler udpMessageHandler;
-
-    private AtomicBoolean connected;
-    private Connection connection;
+    private final IConnection connection;
+    private final String username;
 
     private int session;
-
-    public boolean isConnected() {
-        return connected.get();
-    }
+    private String serverPassword;
+    private Set<String> tokens = new TreeSet<>();
 
     @Override
-    public Connection getConnection() {
+    public IConnection getConnection() {
         return connection;
     }
 
@@ -58,136 +60,155 @@ public class MumbleClient implements IMumbleClient {
     }
 
     public MumbleClient() {
-        this.session = -1;
-        this.connected = new AtomicBoolean(false);
-
-        registerTcpMessageHandlers();
-        this.udpMessageHandler = new UdpMessageHandler(this);
+        this("Mumbot", "");
     }
 
+    public MumbleClient(String username, String serverPassword) {
+        this.serverPassword = serverPassword;
+        this.session = -1;
+        this.username = username;
+        this.connection = new Connection(this);
+    }
+
+    /**
+     * Connects to a server. Blocks until a ServerSync message is received or connection timeout is reached.
+     */
     @Override
-    public void connect(String address, int port) {
-        try {
-            connection = new Connection(this, tcpMessageHandler, udpMessageHandler, address, port);
+    public void connect(String hostname, int port, String password) {
+        if (isConnected()) {
+            LOGGER.warn(Markers.CLIENT, "Cannot connect: Already connected to a server!");
+            return;
+        }
 
-            final short major = 1; // TODO: Read these from config/set via buildscript
-            final byte minor = 0;
-            final byte patch = 0;
-            Mumble.Version version = Mumble.Version.newBuilder()
-                    .setVersion((major << 16) | (minor << 8) | patch)
-                    .setRelease("mumbot")
-                    .build();
+        LOGGER.info(Markers.CLIENT, "Connecting to {}:{}", hostname, port);
+        connection.connect(hostname, port);
 
-            connection.sendTcp(ETcpMessageType.Version, version);
-        } catch (IOException e) {
-            e.printStackTrace();
-            this.connected.set(false);
+        Mumble.Version version = Mumble.Version.newBuilder()
+                .setVersion((VERSION_MAJOR << 16) | (VERSION_MINOR << 8) | VERSION_PATCH)
+                .setRelease(VERSION_PREFIX + "-" + VERSION_RELEASE)
+                .build();
+
+        connection.send(TcpMessageType.Version, version);
+
+        // Wait for ServerSync
+        synchronized (this) {
+            try {
+                this.wait(5000);
+            } catch (InterruptedException e) {
+                LOGGER.warn(Markers.CONNECTION, "Main thread was interrupted before ServerSync was received! This may result in undefined behavior! Cause: {}", e.toString());
+            }
         }
     }
 
     @Override
     public void disconnect() {
-        if (!connected.get()) {
-            System.out.println("Could not disconnect: Not connected to a server");
+        if (!isConnected()) {
+            LOGGER.warn(Markers.CLIENT, "Cannot disconnect: Not connected to a server!");
             return;
         }
 
-        try {
-            connection.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        connected.set(false);
+        LOGGER.info(Markers.CLIENT, "Client disconnecting...");
+        Mumble.UserRemove userRemove = Mumble.UserRemove.newBuilder()
+                .setSession(session)
+                .build();
+
+        connection.send(TcpMessageType.UserRemove, userRemove);
+        connection.disconnect();
     }
 
 
     @Override
     public void changeChannel(String channelName) {
-        System.out.println("Trying to change channel to '" + channelName + "'.");
+        if (!isConnected()) {
+            LOGGER.warn(Markers.CLIENT, "Cannot change channel: Not connected to a server!");
+            return;
+        }
+
+        LOGGER.info(Markers.CLIENT, "Trying to change channel to \"{}\"", channelName);
         Channel channel = channels.getByName(channelName);
 
         if (channel == null) {
-            System.err.printf("Error! No matching channels for argument '%s'.\n", channelName);
+            LOGGER.warn(Markers.CLIENT, "Error! No matching channels for name \"{}\"", channelName);
             return;
         }
 
         Mumble.UserState userState = Mumble.UserState.newBuilder()
                 .setChannelId(channel.getId())
                 .build();
-        connection.sendTcp(ETcpMessageType.UserState, userState);
-    }
-
-    @Override
-    public void sendMessage(String message) {
-        sendMessage(getCurrentChannel(), message);
+        connection.send(TcpMessageType.UserState, userState);
     }
 
     @Override
     public void sendMessage(Channel channel, String message) {
-        if (channel == null) {
-            // TODO: Change this to an exception and make bot initially join root channel
-            System.out.println("Channel cannot be null!");
+        if (!isConnected()) {
+            LOGGER.warn(Markers.CLIENT, "Cannot send message: Not connected to a server!");
             return;
         }
-        System.out.printf("Sending message to channel: '%s', id = %d\n", channel.getName(), channel.getId());
+
+        LOGGER.info(Markers.CLIENT, "To channel \"{}\": {}", channel.getName(), message);
         Mumble.TextMessage msg = Mumble.TextMessage.newBuilder()
                 .setMessage(message)
                 .addChannelId(channel.getId())
                 .build();
-        connection.sendTcp(ETcpMessageType.TextMessage, msg);
+        connection.send(TcpMessageType.TextMessage, msg);
     }
 
     @Override
     public void sendMessage(UserInfo target, String message) {
-        System.out.printf("Sending message to user: '%s', session = %d\n", target.getName(), target.getSession());
+        if (!isConnected()) {
+            LOGGER.warn(Markers.CLIENT, "Cannot send message: Not connected to a server!");
+            return;
+        }
+
+        LOGGER.info("To user \"{}\": {}", target.getName(), message);
         Mumble.TextMessage msg = Mumble.TextMessage.newBuilder()
                 .setMessage(message)
                 .addSession(target.getUserId())
                 .build();
-        connection.sendTcp(ETcpMessageType.TextMessage, msg);
+        connection.send(TcpMessageType.TextMessage, msg);
     }
 
 
     @Override
     public void registerChatListener(IChatListener listener) {
+        LOGGER.debug(Markers.CLIENT, "Registering a new chat listener of type \"{}\"", listener.getClass().getName());
         chatListeners.add(listener);
     }
 
     @Override
+    public void setServerPassword(String serverPassword) {
+        LOGGER.debug(Markers.CLIENT, "Setting server password");
+        this.serverPassword = serverPassword;
+    }
+
+    @Override
+    public void addToken(String token) {
+        LOGGER.debug(Markers.CLIENT, "Adding a token");
+        this.tokens.add(token);
+    }
+
+
     public List<IChatListener> getChatListeners() {
         return new ArrayList<>(chatListeners);
     }
 
-
-    private void registerTcpMessageHandlers() {
-        tcpMessageHandler.register(ETcpMessageType.Version, new HandlerVersion(), Mumble.Version::parseFrom, Mumble.Version::toByteArray);
-        tcpMessageHandler.register(ETcpMessageType.CryptSetup, new HandlerCryptSetup(), Mumble.CryptSetup::parseFrom, Mumble.CryptSetup::toByteArray);
-        tcpMessageHandler.register(ETcpMessageType.ChannelState, new HandlerChannelState(), Mumble.ChannelState::parseFrom, Mumble.ChannelState::toByteArray);
-        tcpMessageHandler.register(ETcpMessageType.UserState, new HandlerUserState(), Mumble.UserState::parseFrom, Mumble.UserState::toByteArray);
-        tcpMessageHandler.register(ETcpMessageType.ServerSync, new HandlerServerSync(), Mumble.ServerSync::parseFrom, Mumble.ServerSync::toByteArray);
-
-        tcpMessageHandler.register(ETcpMessageType.TextMessage, new HandlerTextMessage(), Mumble.TextMessage::parseFrom, Mumble.TextMessage::toByteArray);
-
-        // Just skip UDPTunnel messages, they are not used
-        tcpMessageHandler.register(ETcpMessageType.UDPTunnel, (client, o) -> {}, data -> Mumble.UDPTunnel.newBuilder().setPacket(ByteString.EMPTY).build(), Mumble.UDPTunnel::toByteArray);
-
-
-        // TODO: Properly handle these messages (stubs are here to prevent exceptions due to missing handlers)
-        tcpMessageHandler.register(ETcpMessageType.Ping, (client, o) -> {}, Mumble.Ping::parseFrom, Mumble.Ping::toByteArray);
-        tcpMessageHandler.register(ETcpMessageType.Authenticate, (client, o) -> {}, Mumble.Authenticate::parseFrom, Mumble.Authenticate::toByteArray);
+    public Iterable<String> getTokens() {
+        return tokens;
     }
 
-    // TODO: Figure out something to hide these from the public interface
+    public String getServerPassword() {
+        return serverPassword;
+    }
+
     public void onConnectReady(int session) {
         this.session = session;
-        this.connected.set(true);
+        LOGGER.debug(Markers.CONNECTION, "Connected to the server. Local session is {} and we are currently on channel {}", session, getCurrentChannel().getName());
+        synchronized (this) {
+            this.notifyAll();
+        }
     }
 
-    public void setupCrypt(byte[] key, byte[] clientNonce, byte[] serverNonce) {
-        connection.setupUdpCrypt(key, clientNonce, serverNonce);
-    }
-
-    public void setCryptValid(boolean isValid) {
-        connection.setCryptValid(isValid);
+    public String getUsername() {
+        return session == -1 ? username : getLocalUser().getName();
     }
 }

@@ -42,4 +42,8 @@ public class UdpMessage {
     public UdpMessage(byte[] data) {
         this.data = data;
     }
+
+    public int getLength() {
+        return data.length;
+    }
 }

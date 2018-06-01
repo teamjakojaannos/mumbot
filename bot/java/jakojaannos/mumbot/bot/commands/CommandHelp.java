@@ -1,7 +1,7 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ public class CommandHelp extends Command {
 
     private List<Command> commandList;
 
-    public CommandHelp(MumbleClient client, List<Command> commandList) {
+    public CommandHelp(IMumbleClient client, List<Command> commandList) {
         super(client);
         this.commandList = commandList;
         aliases.add("help");

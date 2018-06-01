@@ -3,7 +3,7 @@ package jakojaannos.mumbot.bot;
 
 import jakojaannos.mumbot.bot.commands.*;
 import jakojaannos.mumbot.client.IChatListener;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 import jakojaannos.mumbot.client.users.UserInfo;
 
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ public class MessageParser implements IChatListener {
 
     private List<Command> commandList;
 
-    public MessageParser(MumbleClient client) {
+    public MessageParser(IMumbleClient client) {
         commandList = new ArrayList<>();
 
         commandList.add(new CommandHelp(client, commandList));
@@ -30,7 +30,7 @@ public class MessageParser implements IChatListener {
 
     }
 
-    @java.lang.Override
+    @Override
     public void receive(UserInfo userInfo, String message) {
         if (message.startsWith("!")) {
             // remove "!"

@@ -1,4 +1,4 @@
 @ParametersAreNonnullByDefault
-package jakojaannos.mumbot.client.connection;
+package jakojaannos.mumbot.client;
 
 import javax.annotation.ParametersAreNonnullByDefault;

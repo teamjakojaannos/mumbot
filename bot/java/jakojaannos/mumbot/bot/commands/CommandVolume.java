@@ -1,12 +1,12 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 public class CommandVolume extends Command {
 
 
-    public CommandVolume(MumbleClient client) {
+    public CommandVolume(IMumbleClient client) {
         super(client);
         aliases.add("volume");
         aliases.add("vol");

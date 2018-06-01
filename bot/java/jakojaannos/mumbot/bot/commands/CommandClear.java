@@ -1,11 +1,11 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 public class CommandClear extends Command {
 
-    public CommandClear(MumbleClient client){
+    public CommandClear(IMumbleClient client) {
         super(client);
         aliases.add("clear");
     }

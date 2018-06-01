@@ -1,11 +1,11 @@
 package jakojaannos.mumbot.bot.commands;
 
 import jakojaannos.mumbot.bot.Command;
-import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.IMumbleClient;
 
 public class CommandSong extends Command {
 
-    public CommandSong(MumbleClient client){
+    public CommandSong(IMumbleClient client) {
         super(client);
         aliases.add("song");
     }

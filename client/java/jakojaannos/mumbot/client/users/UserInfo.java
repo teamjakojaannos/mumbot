@@ -22,7 +22,7 @@ public class UserInfo {
         session = -1;
         name = "UNKNOWN";
         userId = -1;
-        channelId = -1;
+        channelId = 0;
         mute = false;
         deaf = false;
         self_mute = false;

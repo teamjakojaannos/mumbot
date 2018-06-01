@@ -6,10 +6,6 @@ import java.util.List;
 public class UserManager {
     private final List<UserInfo> users = new ArrayList<>();
 
-    public UserManager() {
-
-    }
-
     public void addUser(UserInfo user) {
         users.add(user);
     }
@@ -36,4 +32,15 @@ public class UserManager {
     }
 
 
+    public void removeBySession(int session) {
+        int index = -1;
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).getSession() == session) {
+                index = i;
+                break;
+            }
+        }
+
+        users.remove(index);
+    }
 }

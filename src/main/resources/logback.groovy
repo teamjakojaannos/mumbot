@@ -11,12 +11,18 @@
 //   http://www.qos.ch/shop/products/professionalSupport
 
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
-
-import static ch.qos.logback.classic.Level.TRACE
+import ch.qos.logback.classic.turbo.MarkerFilter
 
 appender("STDOUT", ConsoleAppender) {
     encoder(PatternLayoutEncoder) {
         pattern = "%d{HH:mm:ss.SSS} [%-21thread] %-5level %-20logger{20} | %msg%n"
     }
 }
+
+turboFilter(MarkerFilter) {
+    name = "UDP Tunnel Filter"
+    marker = "UDP_TUNNEL"
+    onMatch = "DENY"
+}
+
 root(TRACE, ["STDOUT"])

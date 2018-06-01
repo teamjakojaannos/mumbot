@@ -2,6 +2,7 @@ package jakojaannos.mumbot.client.connection;
 
 import MumbleProto.Mumble;
 import com.google.protobuf.AbstractMessage;
+import com.google.protobuf.ByteString;
 import jakojaannos.mumbot.client.IChatListener;
 import jakojaannos.mumbot.client.MumbleClient;
 import jakojaannos.mumbot.client.channels.Channel;
@@ -16,7 +17,10 @@ class TcpMessageHandler {
     static class Ignore<TMessage extends AbstractMessage> implements ITcpMessageHandler<TMessage> {
         @Override
         public void handle(MumbleClient client, TMessage message) {
-            LOGGER.trace(Markers.CLIENT, "Ignoring message of type \"{}\"", message.getClass().getName());
+            if (!(message instanceof Mumble.UDPTunnel))
+                LOGGER.trace(Markers.CLIENT, "Ignoring message of type \"{}\"", message.getClass().getName());
+            else
+                LOGGER.trace(Markers.UDP_TUNNEL, "Ignoring message of type \"{}\"", message.getClass().getName());
         }
     }
 
@@ -46,6 +50,14 @@ class TcpMessageHandler {
         public void handle(MumbleClient client, Mumble.CryptSetup message) {
             LOGGER.debug(Markers.CONNECTION, "Received crypt setup.");
 
+            if (message.hasKey() && message.hasClientNonce() && message.hasServerNonce()) {
+                handleSetup(client, message);
+            } else {
+                handleResync(client, message);
+            }
+        }
+
+        private void handleSetup(MumbleClient client, Mumble.CryptSetup message) {
             ((Connection) client.getConnection()).updateUdpCrypto(
                     message.getKey().toByteArray(),
                     message.getClientNonce().toByteArray(),
@@ -61,6 +73,22 @@ class TcpMessageHandler {
 
             client.getConnection().send(new UdpMessage(data));
         }
+
+        private void handleResync(MumbleClient client, Mumble.CryptSetup message) {
+            // Server answers our request
+            if (message.hasServerNonce()) {
+                ((Connection) client.getConnection())
+                        .updateUdpCrypto(null, null, message.getServerNonce().toByteArray());
+            }
+            // Server requests crypt-resync
+            else {
+                final byte[] encryptIv = ((Connection) client.getConnection()).getEncryptIv();
+                Mumble.CryptSetup answer = Mumble.CryptSetup.newBuilder()
+                        .setClientNonce(ByteString.copyFrom(encryptIv))
+                        .build();
+                client.getConnection().send(TcpMessageType.CryptSetup, answer);
+            }
+        }
     }
 
     static class ServerSync implements ITcpMessageHandler<Mumble.ServerSync> {
@@ -70,6 +98,7 @@ class TcpMessageHandler {
             LOGGER.debug(Markers.CONNECTION, "Our session id: {}", sync.getSession());
 
             client.onConnectReady(sync.getSession());
+            client.triggerNotify();
         }
     }
 
@@ -124,6 +153,11 @@ class TcpMessageHandler {
             if (userState.hasPrioritySpeaker()) user.setPriority_speaker(userState.getPrioritySpeaker());
             if (userState.hasRecording())       user.setRecording(userState.getRecording());
             // @formatter:on
+
+            // If we changed channels, tell the client that operation was a success!
+            if (userState.getSession() == client.getLocalSession() && userState.hasChannelId()) {
+                client.triggerNotify();
+            }
         }
     }
 
@@ -156,6 +190,54 @@ class TcpMessageHandler {
             }
 
             client.getUsers().removeBySession(userRemove.getSession());
+        }
+    }
+
+    static class PermissionDenied implements ITcpMessageHandler<Mumble.PermissionDenied> {
+        @Override
+        public void handle(MumbleClient client, Mumble.PermissionDenied message) {
+            // Log why permission was denied and trigger notify on client to prevent getting stuck on changing channels
+            // we don't have permissions to go to etc.
+            switch (message.getType()) {
+                case Text:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: {}", message.hasReason() ? message.getReason() : "No reason.");
+                    break;
+                case Permission:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied");
+                    client.triggerNotify();
+                    break;
+                case SuperUser:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: SuperUser cannot be modified");
+                    break;
+                case ChannelName:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Invalid channel name");
+                    break;
+                case TextTooLong:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Text too long");
+                    break;
+                case TemporaryChannel:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Operation not permitted on temporary channel");
+                    break;
+                case MissingCertificate:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Missing certificate");
+                    break;
+                case UserName:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Invalid user name");
+                    break;
+                case ChannelFull:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Channel is full");
+                    client.triggerNotify();
+                    break;
+                case NestingLimit:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Channel nesting limit reached");
+                    break;
+                case H9K:
+                    LOGGER.error("Permission denied: H9K says no.");
+                    break;
+                default:
+                    LOGGER.warn(Markers.PERMISSION_DENIED, "Permission denied: Unknown reason");
+                    break;
+            }
         }
     }
 }

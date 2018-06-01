@@ -83,6 +83,14 @@ public abstract class ChannelBase<TPacket> implements IChannel<TPacket> {
         }
     }
 
+    void externalQueue(TPacket packet) {
+        try {
+            readQueue.put(packet);
+        } catch (InterruptedException e) {
+            LOGGER.warn(Markers.CONNECTION, "Channel \"{}\" interrupted while queuing packet externally to readQueue: {}", name, e.toString());
+        }
+    }
+
     private void doReadLoop() {
         LOGGER.trace(Markers.CONNECTION, "Channel \"{}\" entering read loop", name);
         while (isConnected.get()) {

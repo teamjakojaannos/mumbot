@@ -19,14 +19,16 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
     private static final int BUFFER_MAX_CAPACITY = HEADER_SIZE + MESSAGE_MAX_LENGTH;
 
     private final SocketFactory socketFactory;
+    private final UdpChannel udpChannel;
 
     @Nullable
     private Socket socket;
     private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_MAX_CAPACITY);
 
-    TcpChannel(SocketFactory socketFactory) {
+    TcpChannel(SocketFactory socketFactory, UdpChannel udpChannel) {
         super("TCP");
         this.socketFactory = socketFactory;
+        this.udpChannel = udpChannel;
     }
 
     @Override
@@ -87,7 +89,6 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
             InputStream stream = socket.getInputStream();
 
             // Read header
-            LOGGER.trace(Markers.TCP, "Reading TCP Packet header");
             if (readBytes(stream, HEADER_SIZE)) {
                 disconnect();
                 return null;
@@ -101,7 +102,11 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
 
 
             // Read message
-            LOGGER.trace(Markers.TCP, "Reading TCP Packet payload");
+            if (TcpMessageType.fromRaw(messageType) != TcpMessageType.UDPTunnel) {
+                LOGGER.trace(Markers.TCP, "Reading TCP Packet");
+            } else {
+                LOGGER.trace(Markers.UDP_TUNNEL, "Reading UDP Tunnel Packet");
+            }
             if (readBytes(stream, messageLength - buffer.position())) {
                 disconnect();
                 return null;
@@ -115,8 +120,7 @@ class TcpChannel extends ChannelBase<TcpChannel.Packet> {
 
             // Special case for TCP tunneled UDP packet
             if (TcpMessageType.fromRaw(messageType) == TcpMessageType.UDPTunnel) {
-                LOGGER.trace(Markers.TCP, "Redirecting tunneled packet to UDP");
-                // TODO: redirect to udp channel
+                udpChannel.externalQueue(new UdpMessage(data));
             }
 
             return new Packet(messageType, messageLength, data);

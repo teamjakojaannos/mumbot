@@ -12,20 +12,7 @@ public class Main {
         MessageParser parser = new MessageParser(client);
         client.registerChatListener(parser);
 
-        try {
-            client.changeChannel("Offtopic");
-            Thread.sleep(1000);
-
-            client.sendMessage("Haistakee kakke");
-            Thread.sleep(10000);
-
-            client.sendMessage("Suksin nyt vittuun");
-            client.disconnect();
-
-
-        } catch (InterruptedException e) {
-        }
-
-
+        client.changeChannel("Offtopic");
+        client.sendMessage("Haistakee kakke");
     }
 }

@@ -22,6 +22,9 @@ import java.util.TreeSet;
 public class MumbleClient implements IMumbleClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(MumbleClient.class.getSimpleName());
 
+    private static final long CONNECT_TIMEOUT = 10000; // ms
+
+
     private static final String VERSION_PREFIX = "mumbot";
     private static final String VERSION_RELEASE = "ALPHA";
     private static final short VERSION_MAJOR = 0;
@@ -93,7 +96,7 @@ public class MumbleClient implements IMumbleClient {
         // Wait for ServerSync
         synchronized (this) {
             try {
-                this.wait(5000);
+                this.wait(CONNECT_TIMEOUT);
             } catch (InterruptedException e) {
                 LOGGER.warn(Markers.CONNECTION, "Main thread was interrupted before ServerSync was received! This may result in undefined behavior! Cause: {}", e.toString());
             }
@@ -136,6 +139,15 @@ public class MumbleClient implements IMumbleClient {
                 .setChannelId(channel.getId())
                 .build();
         connection.send(TcpMessageType.UserState, userState);
+
+        // Wait for UserState or PermissionDenied
+        synchronized (this) { // TODO: Instead of using "this" as a lock, use separate lock object
+            try {
+                this.wait();
+            } catch (InterruptedException e) {
+                LOGGER.warn(Markers.CHANNELS, "Main thread was interrupted before confirmation was received! This may result in undefined behavior! Cause: {}", e.toString());
+            }
+        }
     }
 
     @Override
@@ -203,6 +215,9 @@ public class MumbleClient implements IMumbleClient {
     public void onConnectReady(int session) {
         this.session = session;
         LOGGER.debug(Markers.CONNECTION, "Connected to the server. Local session is {} and we are currently on channel {}", session, getCurrentChannel().getName());
+    }
+
+    public void triggerNotify() {
         synchronized (this) {
             this.notifyAll();
         }

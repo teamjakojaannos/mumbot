@@ -8,6 +8,7 @@ import jakojaannos.mumbot.client.util.logging.Markers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Executors;
@@ -21,6 +22,7 @@ public class Connection implements IConnection {
     private static final long PING_RATE = 5000; // ms
 
     private final TcpChannel tcpChannel;
+    private final UdpChannel udpChannel;
 
     private final ScheduledExecutorService pingService;
     private final Thread handler;
@@ -30,7 +32,11 @@ public class Connection implements IConnection {
 
     @Override
     public boolean isConnected() {
-        return tcpChannel.isConnected();
+        return tcpChannel.isConnected() && udpChannel.isConnected();
+    }
+
+    private boolean isCryptValid() {
+        return udpChannel.getCryptState().isValid() && cryptValid;
     }
 
     public Connection(MumbleClient client) {
@@ -41,7 +47,8 @@ public class Connection implements IConnection {
             throw new IllegalStateException("Could not initialize SocketFactory.");
         }
 
-        tcpChannel = new TcpChannel(factory);
+        udpChannel = new UdpChannel();
+        tcpChannel = new TcpChannel(factory, udpChannel);
         handler = new Thread(null, () -> handlerLoop(client), "Connection/Handler");
         pingService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(null, r, "Connection/Ping"));
     }
@@ -49,6 +56,7 @@ public class Connection implements IConnection {
     @Override
     public void connect(String hostname, int port) {
         tcpChannel.connect(hostname, port);
+        udpChannel.connect(hostname, port);
         handler.start();
         pingService.scheduleAtFixedRate(this::sendPing, PING_INITIAL_DELAY, PING_RATE, TimeUnit.MILLISECONDS);
     }
@@ -56,10 +64,14 @@ public class Connection implements IConnection {
     @Override
     public void disconnect() {
         tcpChannel.disconnect();
+        udpChannel.disconnect();
         handler.interrupt();
         pingService.shutdownNow();
     }
 
+    /**
+     * Sends a protobuf message trough TCP
+     */
     @Override
     public void send(TcpMessageType messageType, AbstractMessage message) {
         byte[] data = messageType.serialize(message);
@@ -67,6 +79,9 @@ public class Connection implements IConnection {
         tcpChannel.send(packet);
     }
 
+    /**
+     * Sends UDP message. If crypto hasn't been validated yet, the packet is tunneled through TCP.
+     */
     @Override
     public void send(UdpMessage message) {
         if (hasCrypt && !cryptValid) {
@@ -83,10 +98,11 @@ public class Connection implements IConnection {
      */
     @Override
     public void sendUdp(UdpMessage message) {
-
+        udpChannel.send(message);
     }
 
-    public void updateUdpCrypto(byte[] key, byte[] clientNonce, byte[] serverNonce) {
+    void updateUdpCrypto(@Nullable byte[] key, @Nullable byte[] clientNonce, byte[] serverNonce) {
+        udpChannel.updateCrypto(key, clientNonce, serverNonce);
         hasCrypt = true;
     }
 
@@ -115,17 +131,11 @@ public class Connection implements IConnection {
         LOGGER.trace(Markers.CONNECTION, "Connection handler thread entering loop!");
         while (tcpChannel.isConnected()) {
             while (tcpChannel.hasReceivedPackets()) {
-                LOGGER.trace(Markers.TCP, "TCP Channel has unprocessed packets!");
 
                 TcpChannel.Packet packet = tcpChannel.popReceivedPacket();
                 if (packet == null) break;
-
+                LOGGER.trace(packet.getType() == TcpMessageType.UDPTunnel ? Markers.UDP_TUNNEL : Markers.TCP, "TCP Channel has unprocessed packets!");
                 packet.getType().handle(client, packet.getData());
-                if (packet.getType() == TcpMessageType.ServerSync) {
-                    synchronized (this) {
-                        this.notify();
-                    }
-                }
             }
 
             try {
@@ -141,5 +151,9 @@ public class Connection implements IConnection {
 
     void setCryptValid(boolean cryptValid) {
         this.cryptValid = cryptValid;
+    }
+
+    byte[] getEncryptIv() {
+        return udpChannel.getCryptState().getEncryptIv();
     }
 }

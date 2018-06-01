@@ -116,7 +116,7 @@ public class Connection implements IConnection {
 
         // We can/must send pings even if crypt hasn't been validated yet as validating the crypt involves receiving
         // answer to our pings.
-        if (hasCrypt && isCryptValid()) {
+        if (hasCrypt) {
             byte[] data = new byte[2]; // Header + varint
             data[0] = 0x20; // Ping packet header 00100000
 

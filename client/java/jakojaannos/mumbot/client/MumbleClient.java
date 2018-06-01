@@ -42,6 +42,7 @@ public class MumbleClient implements IMumbleClient {
     private String serverPassword;
     private Set<String> tokens = new TreeSet<>();
     private IAudioOutputHandler outputHandler;
+    private IAudioInputHandler inputHandler;
 
     @Override
     public IConnection getConnection() {
@@ -230,5 +231,9 @@ public class MumbleClient implements IMumbleClient {
 
     public IAudioOutputHandler getOutputHandler() {
         return outputHandler;
+    }
+
+    public IAudioInputHandler getInputHandler() {
+        return inputHandler;
     }
 }

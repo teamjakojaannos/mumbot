@@ -15,7 +15,7 @@ import ch.qos.logback.classic.turbo.MarkerFilter
 
 appender("STDOUT", ConsoleAppender) {
     encoder(PatternLayoutEncoder) {
-        pattern = "%d{HH:mm:ss.SSS} [%-21thread] %-5level %-20logger{20} | %msg%n"
+        pattern = "%d{HH:mm:ss.SSS} [%-22thread] %-5level %-20logger{20} | %msg%n"
     }
 }
 

@@ -2,8 +2,10 @@ package jakojaannos.mumbot.client.connection;
 
 import MumbleProto.Mumble;
 import com.google.protobuf.AbstractMessage;
+import jakojaannos.mumbot.client.IAudioFrame;
 import jakojaannos.mumbot.client.IConnection;
 import jakojaannos.mumbot.client.MumbleClient;
+import jakojaannos.mumbot.client.util.VarInt;
 import jakojaannos.mumbot.client.util.logging.Markers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +28,8 @@ public class Connection implements IConnection {
     private final UdpChannel udpChannel;
 
     private final ScheduledExecutorService pingService;
-    private final Thread handler;
+    private final Thread incomingHandler;
+    private final Thread outgoingHandler;
 
     private boolean cryptValid;
     private boolean hasCrypt;
@@ -46,7 +49,8 @@ public class Connection implements IConnection {
 
         udpChannel = new UdpChannel();
         tcpChannel = new TcpChannel(factory, udpChannel);
-        handler = new Thread(null, () -> handlerLoop(client), "Connection/Handler");
+        incomingHandler = new Thread(null, () -> incomingHandlerLoop(client), "Connection/Handler/In");
+        outgoingHandler = new Thread(null, () -> outgoingHandlerLoop(client), "Connection/Handler/Out");
         pingService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(null, r, "Connection/Ping"));
     }
 
@@ -54,7 +58,7 @@ public class Connection implements IConnection {
     public void connect(String hostname, int port) {
         tcpChannel.connect(hostname, port);
         udpChannel.connect(hostname, port);
-        handler.start();
+        incomingHandler.start();
         pingService.scheduleAtFixedRate(this::sendPing, PING_INITIAL_DELAY, PING_RATE, TimeUnit.MILLISECONDS);
     }
 
@@ -62,7 +66,7 @@ public class Connection implements IConnection {
     public void disconnect() {
         tcpChannel.disconnect();
         udpChannel.disconnect();
-        handler.interrupt();
+        incomingHandler.interrupt();
         pingService.shutdownNow();
     }
 
@@ -124,8 +128,8 @@ public class Connection implements IConnection {
         }
     }
 
-    private void handlerLoop(MumbleClient client) {
-        LOGGER.trace(Markers.CONNECTION, "Connection handler thread entering loop!");
+    private void incomingHandlerLoop(MumbleClient client) {
+        LOGGER.trace(Markers.CONNECTION, "Connection incoming handler thread entering loop!");
         main:
         while (isConnected()) {
             while (tcpChannel.hasReceivedPackets()) {
@@ -178,9 +182,53 @@ public class Connection implements IConnection {
             }
         }
 
-        LOGGER.trace(Markers.CONNECTION, "Connection handler thread leaving loop!");
+        LOGGER.trace(Markers.CONNECTION, "Connection incoming handler thread leaving loop!");
 
         disconnect();
+    }
+
+    private void outgoingHandlerLoop(MumbleClient client) {
+        // TODO: Recycle buffers, scrap current VarInt implementation and replace with stream/buffer style impl
+        LOGGER.trace(Markers.CONNECTION, "Connection outgoing Handler thread entering loop!");
+        ByteBuffer buffer = ByteBuffer.allocate(0x3FFF);
+        while (isConnected()) {
+            if (client.getInputHandler() != null) {
+                while (client.getInputHandler().canProvideAudio()) {
+                    IAudioFrame frame = client.getInputHandler().popAudioFrame();
+                    byte header = (byte) 0x80;
+
+                    UdpAudioPacket packet = new UdpAudioPacket(
+                            header,
+                            VarInt.encode(client.getLocalSession()),
+                            VarInt.encode(frame.getSequenceNumber()),
+                            new UdpAudioPacket.Payload(frame.getSize(), frame.getData()),
+                            new float[]{0f, 0f, 0f},
+                            frame.isEndOfTransmission());
+
+                    packet.serialize(buffer);
+                    buffer.flip();
+
+                    byte[] data = new byte[buffer.limit()];
+                    System.arraycopy(buffer.array(), 0, data, 0, data.length);
+                    send(new UdpMessage(data));
+                }
+
+                synchronized (client.getInputHandler().getLock()) {
+                    try {
+                        client.getInputHandler().getLock().wait();
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+
+            } else {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+
+        LOGGER.trace(Markers.CONNECTION, "Connection outgoing Handler thread leaving loop!");
     }
 
     byte[] getEncryptIv() {

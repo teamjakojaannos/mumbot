@@ -4,7 +4,7 @@ package jakojaannos.mumbot.client;
  * Provides a single Opus-encoded audio frame
  */
 public interface IAudioFrame {
-    long getSize();
+    int getSize();
 
     long getSequenceNumber();
 

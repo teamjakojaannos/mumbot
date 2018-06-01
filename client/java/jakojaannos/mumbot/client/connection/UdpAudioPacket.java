@@ -23,8 +23,8 @@ public class UdpAudioPacket implements IAudioFrame {
     }
 
     @Override
-    public long getSize() {
-        return payload.header.getValue();
+    public int getSize() {
+        return (int) payload.header.getValue();
     }
 
     @Override

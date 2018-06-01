@@ -147,6 +147,7 @@ public class Connection implements IConnection {
 
                 UdpMessageType type = UdpMessageType.fromRaw(message.getType());
                 LOGGER.trace(Markers.UDP, "Processing UDP channel packet of type \"{}\"...", type);
+
             }
 
             try {
